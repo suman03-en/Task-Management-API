@@ -26,7 +26,7 @@ def list_users_in_db(db: Session) -> Sequence[UserModel]:
     return db.scalars(statement).all()
 
 
-def get_user_in_db(db: Session, user_id: str) -> UserModel:
+def get_user_from_db(db: Session, user_id: str) -> UserModel:
     user = db.get(UserModel, user_id)
     if user is None:
         raise HTTPException(

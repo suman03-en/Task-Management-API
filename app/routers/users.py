@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.dependencies import get_db
 from app.schemas.user import UserCreate, UserRead
-from app.services.user import create_user_in_db, get_user_by_id, list_users_in_db
+from app.services.user import create_user_in_db, get_user_from_db, list_users_in_db
 
 user_router = APIRouter(prefix="/users", tags=["users"])
 
@@ -24,4 +24,4 @@ def list_users(db: DbSession):
 
 @user_router.get("/{user_id}", response_model=UserRead)
 def get_user(user_id: str, db: DbSession):
-    return get_user_by_id(db, user_id)
+    return get_user_from_db(db, user_id)
