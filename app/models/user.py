@@ -5,7 +5,7 @@ from sqlalchemy import DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.config import utc_now
-from app.db.base import Base
+from app.db.database import Base
 
 
 class User(Base):

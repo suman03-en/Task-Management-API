@@ -1,37 +1,37 @@
 from fastapi import HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.project import Project as ProjectModel
-from app.repositories.project import (
-    create_project as create_project_repo,
-    delete_project as delete_project_repo,
-    get_project_by_id,
-    list_projects as list_projects_repo,
-    update_project as update_project_repo,
-)
-from app.repositories.user import get_user_by_id
+from app.models.user import User as UserModel
 from app.schemas.project import ProjectCreate, ProjectUpdate
 
 
-def create_project(db: Session, project_in: ProjectCreate) -> ProjectModel:
+def create_project_in_db(db: Session, project_in: ProjectCreate) -> ProjectModel:
     if (
         project_in.owner_id is not None
-        and get_user_by_id(db, project_in.owner_id) is None
+        and db.get(ProjectModel, project_in.owner_id) is None
     ):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Owner not found.",
         )
 
-    return create_project_repo(db, project_in)
+    project_db = ProjectModel(**project_in.model_dump())
+    db.add(project_db)
+    db.commit()
+    db.refresh(project_db)
+    return project_db
 
 
-def list_projects(db: Session):
-    return list_projects_repo(db)
+def list_projects_from_db(db: Session):
+    statement = select(ProjectModel).order_by(ProjectModel.created_at.desc())
+    return db.scalars(statement).all()
+    
 
 
-def get_project(db: Session, project_id: str) -> ProjectModel:
-    project = get_project_by_id(db, project_id)
+def get_project_from_db(db: Session, project_id: str) -> ProjectModel:
+    project = db.get(ProjectModel, project_id)
     if project is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -40,23 +40,26 @@ def get_project(db: Session, project_id: str) -> ProjectModel:
     return project
 
 
-def update_project(
+def update_project_in_db(
     db: Session, project_id: str, project_in: ProjectUpdate
 ) -> ProjectModel:
-    project = get_project(db, project_id)
+    project_db = db.get(ProjectModel, project_id)
 
-    if (
-        project_in.owner_id is not None
-        and get_user_by_id(db, project_in.owner_id) is None
-    ):
+    if not project_db:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Owner not found.",
+            detail="Project not found."
         )
+    
+    for field, value in project_in.model_dump(exclude_unset=True).items():
+        setattr(project_db, field, value)
 
-    return update_project_repo(db, project, project_in)
+    db.commit()
+    db.refresh(project_db)
+    return project_db
 
 
-def delete_project(db: Session, project_id: str) -> None:
-    project = get_project(db, project_id)
-    delete_project_repo(db, project)
+def delete_project_from_db(db: Session, project_id: str) -> None:
+    project = get_project_from_db(db, project_id)
+    db.delete(project)
+    db.commit()

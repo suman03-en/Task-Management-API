@@ -1,9 +1,9 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
-from .core.config import get_settings
-from .db.init_db import init_db
-from .routers import project_router, user_router
+from app.core.config import get_settings
+from app.db.database import init_db
+from app.routers import project_router, user_router
 
 settings = get_settings()
 
@@ -26,5 +26,4 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run("app.main:app", reload=True)

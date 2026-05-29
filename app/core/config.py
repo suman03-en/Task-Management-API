@@ -6,6 +6,7 @@ import os
 timezone_nepal = timezone(timedelta(hours=5, minutes=45), name="Asia/Kathmandu")
 
 
+# returns timezone aware time
 def utc_now() -> datetime:
     return datetime.now(timezone_nepal)
 
