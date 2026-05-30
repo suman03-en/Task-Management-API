@@ -1,7 +1,7 @@
 from datetime import datetime
 import uuid
-
-from sqlalchemy import DateTime, ForeignKey, String, Text
+from typing import List
+from sqlalchemy import DateTime, ForeignKey, String, Text, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.config import utc_now
@@ -11,13 +11,13 @@ from app.db.database import Base
 class Project(Base):
     __tablename__ = "projects"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     description: Mapped[str] = mapped_column(Text, nullable=False, default="")
-    owner_id: Mapped[str | None] = mapped_column(
-        String(36),
+    owner_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
@@ -33,3 +33,4 @@ class Project(Base):
     )
 
     owner = relationship("User", back_populates="projects")
+    tasks = relationship("Task", back_populates="project")
