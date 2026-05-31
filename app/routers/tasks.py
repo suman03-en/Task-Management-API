@@ -5,8 +5,12 @@ from sqlalchemy.orm import Session
 
 from app.dependencies import get_db
 from app.schemas.task import TaskCreate, TaskRead, TaskUpdate
-from app.services.task import create_task_in_db, get_task_from_db, update_task_in_db, delete_task_from_db
-
+from app.services.task import (
+    create_task_in_db,
+    get_task_from_db,
+    update_task_in_db,
+    delete_task_from_db,
+)
 
 task_router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -16,18 +20,24 @@ DbSession = Annotated[Session, Depends(get_db)]
 
 @task_router.post("", response_model=TaskRead, status_code=status.HTTP_201_CREATED)
 def create_task(task_in: TaskCreate, db: DbSession) -> TaskRead:
-    return create_task_in_db(db, task_in)
+    task = create_task_in_db(db, task_in)
+    return TaskRead.model_validate(task)
+
 
 @task_router.get("/{task_id}", response_model=TaskRead)
 def get_task(task_id: uuid.UUID, db: DbSession):
-    return get_task_from_db(task_id, db)
+    task = get_task_from_db(task_id, db)
+    return TaskRead.model_validate(task)
 
-@task_router.patch("/{task_id}", response_model=TaskRead, status_code=status.HTTP_200_OK)
+
+@task_router.patch(
+    "/{task_id}", response_model=TaskRead, status_code=status.HTTP_200_OK
+)
 def update_task(task_id: uuid.UUID, task_update: TaskUpdate, db: DbSession) -> TaskRead:
-    return update_task_in_db(task_id, task_update, db)
+    task = update_task_in_db(task_id, task_update, db)
+    return TaskRead.model_validate(task)
+
 
 @task_router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_task(task_id: uuid.UUID, db: DbSession):
     return delete_task_from_db(task_id, db)
-
-    
