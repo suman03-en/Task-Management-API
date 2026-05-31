@@ -24,6 +24,6 @@ class Task(Base):
         DateTime(timezone=True), default=utc_now, nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
     project = relationship("Project", back_populates="tasks")

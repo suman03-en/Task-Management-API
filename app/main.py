@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from app.core.config import get_settings
 import app.models
 from app.db.database import init_db
-from app.routers import project_router, user_router
+from app.routers import project_router, user_router, task_router
 
 settings = get_settings()
 
@@ -18,6 +18,7 @@ async def lifespan(api: FastAPI):
 api = FastAPI(title=settings.app_name, debug=settings.debug, lifespan=lifespan)
 api.include_router(user_router)
 api.include_router(project_router)
+api.include_router(task_router)
 
 
 @api.get("/")

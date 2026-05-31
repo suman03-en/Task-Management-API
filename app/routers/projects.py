@@ -1,9 +1,11 @@
+import uuid
 from typing import Annotated
 from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.dependencies import get_db
 from app.schemas.project import ProjectCreate, ProjectRead, ProjectUpdate
+from app.schemas.task import TaskRead
 from app.services.project import (
     create_project_in_db,
     delete_project_from_db,
@@ -11,6 +13,7 @@ from app.services.project import (
     list_projects_from_db,
     update_project_in_db,
 )
+from app.services.task import list_tasks_from_db
 
 project_router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -31,16 +34,21 @@ def list_projects(db: DbSession):
 
 
 @project_router.get("/{project_id}", response_model=ProjectRead)
-def get_project(project_id: str, db: DbSession):
+def get_project(project_id: uuid.UUID, db: DbSession):
     return get_project_from_db(db, project_id)
 
 
 @project_router.patch("/{project_id}", response_model=ProjectRead)
-def update_project(project_id: str, project_in: ProjectUpdate, db: DbSession):
+def update_project(project_id: uuid.UUID, project_in: ProjectUpdate, db: DbSession):
     return update_project_in_db(db, project_id, project_in)
 
 
 @project_router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_project(project_id: str, db: DbSession):
+def delete_project(project_id: uuid.UUID, db: DbSession):
     delete_project_from_db(db, project_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@project_router.get("/{project_id}/tasks", response_model=list[TaskRead])
+def list_tasks(project_id: uuid.UUID, db: DbSession):
+    return list_tasks_from_db(project_id, db)

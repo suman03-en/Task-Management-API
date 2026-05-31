@@ -1,9 +1,11 @@
+import uuid
+from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 class TaskBase(BaseModel):
     name: str
     description: str | None = None
-    project_id: str
+    project_id: uuid.UUID
 
 class TaskCreate(TaskBase):
     pass
@@ -11,9 +13,9 @@ class TaskCreate(TaskBase):
 class TaskRead(TaskBase):
     model_config = ConfigDict(from_attributes=True)
 
-    id: str
-    created_at: str
-    updated_at: str
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
 
 
 class TaskUpdate(BaseModel):
