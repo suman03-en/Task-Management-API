@@ -64,3 +64,36 @@ def delete_project_from_db(db: Session, project_id: uuid.UUID) -> None:
     project = get_project_from_db(db, project_id)
     db.delete(project)
     db.commit()
+
+
+def add_project_member_in_db(db: Session, project_id: uuid.UUID, user_id: uuid.UUID) -> None:
+    project = get_project_from_db(db, project_id)
+    user = db.get(UserModel, user_id)
+
+    if user is None or project is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Failed to add member to project. User or project not found.",
+        )
+
+    project.members.append(user)
+    db.commit()
+
+def remove_project_member_in_db(db: Session, project_id: uuid.UUID, user_id: uuid.UUID) -> None:
+    project = get_project_from_db(db, project_id)
+    user = db.get(UserModel, user_id)
+
+    if user is None or project is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Failed to remove member from project. User or project not found.",
+        )
+
+    project.members.remove(user)
+    db.commit()
+
+def list_project_members_from_db(db: Session, project_id: uuid.UUID) -> list[UserModel]:
+    project = get_project_from_db(db, project_id)
+    return project.members
+
+

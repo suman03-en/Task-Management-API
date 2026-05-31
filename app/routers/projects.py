@@ -52,3 +52,8 @@ def delete_project(project_id: uuid.UUID, db: DbSession):
 @project_router.get("/{project_id}/tasks", response_model=list[TaskRead])
 def list_tasks(project_id: uuid.UUID, db: DbSession):
     return list_tasks_from_db(project_id, db)
+
+
+#endpoints related to project members 
+
+
