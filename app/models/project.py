@@ -33,3 +33,24 @@ class Project(Base):
 
     owner = relationship("User", back_populates="projects")
     tasks = relationship("Task", back_populates="project")
+    members = relationship("ProjectMember", back_populates="project")
+
+class ProjectMember(Base):
+    __tablename__ = "project_members"
+
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("projects.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    joined_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, nullable=False
+    )   
+
+    project = relationship("Project", back_populates="members")
+    user = relationship("User", back_populates="project_memberships")

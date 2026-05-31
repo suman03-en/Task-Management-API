@@ -22,3 +22,4 @@ class User(Base):
     )
 
     projects = relationship("Project", back_populates="owner")
+    project_memberships = relationship("ProjectMember", back_populates="user")
