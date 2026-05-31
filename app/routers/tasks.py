@@ -19,23 +19,20 @@ DbSession = Annotated[Session, Depends(get_db)]
 
 
 @task_router.post("", response_model=TaskRead, status_code=status.HTTP_201_CREATED)
-def create_task(task_in: TaskCreate, db: DbSession) -> TaskRead:
-    task = create_task_in_db(db, task_in)
-    return TaskRead.model_validate(task)
+def create_task(task_in: TaskCreate, db: DbSession):
+    return create_task_in_db(db, task_in)
 
 
 @task_router.get("/{task_id}", response_model=TaskRead)
 def get_task(task_id: uuid.UUID, db: DbSession):
-    task = get_task_from_db(task_id, db)
-    return TaskRead.model_validate(task)
+    return get_task_from_db(task_id, db)
 
 
 @task_router.patch(
     "/{task_id}", response_model=TaskRead, status_code=status.HTTP_200_OK
 )
-def update_task(task_id: uuid.UUID, task_update: TaskUpdate, db: DbSession) -> TaskRead:
-    task = update_task_in_db(task_id, task_update, db)
-    return TaskRead.model_validate(task)
+def update_task(task_id: uuid.UUID, task_update: TaskUpdate, db: DbSession):
+    return update_task_in_db(task_id, task_update, db)
 
 
 @task_router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
