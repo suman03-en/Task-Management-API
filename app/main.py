@@ -2,7 +2,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.core.config import get_settings
-import app.models
 from app.db.database import init_db
 from app.routers import project_router, user_router, task_router
 

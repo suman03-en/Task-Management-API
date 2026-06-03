@@ -23,3 +23,8 @@ class TaskUpdate(BaseModel):
     description: str | None = None  
 
 
+class TaskListResponse(BaseModel):
+    tasks: list[TaskRead]
+    count: int = 0
+
+

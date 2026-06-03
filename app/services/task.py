@@ -28,6 +28,14 @@ def list_tasks_from_db(project_id: uuid.UUID, db: Session) -> list[Task]:
     )
     return tasks_db
 
+def get_task_count_from_db(project_id: uuid.UUID, db: Session) -> int:
+    if db.get(Project, project_id) is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found."
+        )
+    count = db.query(Task).filter(Task.project_id == project_id).count()
+    return count
 
 def get_task_from_db(task_id: uuid.UUID, db: Session) -> Task:
     task_db = db.get(Task, task_id)
