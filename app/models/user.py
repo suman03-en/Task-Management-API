@@ -17,9 +17,11 @@ class User(Base):
     username: Mapped[str] = mapped_column(
         String(50), unique=True, nullable=False, index=True
     )
+    hashed_password: Mapped[str] = mapped_column(
+        nullable=False
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, nullable=False
     )
-
     projects = relationship("Project", back_populates="owner")
     project_memberships = relationship("ProjectMember", back_populates="user")

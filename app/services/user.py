@@ -1,28 +1,30 @@
 import uuid
-from fastapi import HTTPException, status
+from typing import Annotated
+
+from fastapi import HTTPException, status, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.models.user import User as UserModel
-from app.schemas.user import UserCreate
-
+from app.schemas.user import UserCreate, TokenData, UserInDB
+from app.dependencies import oauth_scheme
+from app.auth.jwt_handler import decode_jwt_token
+from app.auth.security import verify_password, get_password_hash
+from app.dependencies import get_db
 
 def create_user_in_db(db: Session, user_in: UserCreate) -> UserModel:
-    user_db = UserModel(**user_in.model_dump())
-    try:
-        db.add(user_db)
-        db.commit()
-        db.refresh(user_db)
-    except SQLAlchemyError as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "message": f"Failed to create user in the database.",
-                "error": str(e),
-            },
-        )
+    if get_user_by_username(db, user_in.username):
+        raise ValueError("Username already exists.")
+    hashed_password = get_password_hash(user_in.password)
+    user_db = UserModel(
+        username=user_in.username,
+        hashed_password=hashed_password
+    )
+    db.add(user_db)
+    db.commit()
+    db.refresh(user_db)
+
     return user_db
 
 
@@ -39,3 +41,34 @@ def get_user_from_db(db: Session, user_id: uuid.UUID) -> UserModel:
             detail="User not found.",
         )
     return user_db
+
+def get_user_by_username(db: Session, username: str) -> UserModel | None:
+    return db.query(UserModel).filter(UserModel.username == username).first()
+
+def authenticate_user(db: Session, username: str, password: str):
+    user = get_user_by_username(db, username=username)
+    if user is None:
+        return None
+    if not verify_password(password, user.hashed_password):
+        return None
+    return user
+
+def get_current_user(token: Annotated[str, Depends(oauth_scheme)], db: Session = Depends(get_db)) -> UserModel:
+    credentials_exception = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Could not validate credentials",
+    headers={"WWW-Authenticate": "Bearer"},
+    )
+    payload = decode_jwt_token(token)
+    username = payload.get("sub")
+    if username is None:
+        raise credentials_exception
+    token_data = TokenData(username=username)
+    user = get_user_by_username(db, username=token_data.username)
+    if user is None:
+        raise credentials_exception
+    return user
+
+
+    
+
