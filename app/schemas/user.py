@@ -19,6 +19,9 @@ class UserRead(UserBase):
 class UserInDB(UserBase):
     hashed_password: str
 
+class ProjectMember(BaseModel):
+    members: list[UserRead]
+
 
 class Token(BaseModel):
     access_token: str

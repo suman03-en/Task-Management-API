@@ -4,9 +4,15 @@ from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.dependencies import get_db
-from app.schemas.project import ProjectCreate, ProjectRead, ProjectUpdate
+from app.schemas.project import (
+    ProjectCreate, 
+    ProjectRead, 
+    ProjectUpdate, 
+    ProjectMemberAdd, 
+    ProjectMemberRead
+)
 from app.schemas.task import TaskRead, TaskListResponse, TaskCreate, TaskInDB
-from app.schemas.user import UserRead
+from app.schemas.user import UserRead, ProjectMember
 from app.services.project import (
     add_project_member_in_db,
     create_project_in_db,
@@ -14,7 +20,7 @@ from app.services.project import (
     get_project_from_db,
     list_projects_from_db,
     list_project_members_from_db,
-    remove_project_member_in_db,
+    remove_project_member_from_db,
     update_project_in_db,
 )
 from app.services.task import list_tasks_from_db, get_task_count_from_db, create_task_in_db
@@ -69,14 +75,15 @@ def list_project_members(project_id: uuid.UUID, db: DbSession):
 
 
 @project_router.post(
-    "/{project_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT
+    "/{project_id}/members", response_model=ProjectMemberRead, status_code=status.HTTP_201_CREATED
 )
-def add_project_member(project_id: uuid.UUID, user_id: uuid.UUID, db: DbSession):
-    add_project_member_in_db(db, project_id, user_id)
+def add_project_member(project_id: uuid.UUID, member_in: ProjectMemberAdd, db: DbSession):
+   return add_project_member_in_db(db, project_id, member_in)
+
 
 
 @project_router.delete(
-    "/{project_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT
+    "/{project_id}/members", status_code=status.HTTP_204_NO_CONTENT
 )
-def remove_project_member(project_id: uuid.UUID, user_id: uuid.UUID, db: DbSession):
-    remove_project_member_in_db(db, project_id, user_id)
+def remove_project_member(project_id: uuid.UUID, member_in: ProjectMemberAdd, db: DbSession):
+    remove_project_member_from_db(db, project_id, member_in)

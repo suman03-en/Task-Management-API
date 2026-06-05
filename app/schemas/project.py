@@ -27,3 +27,16 @@ class ProjectRead(ProjectBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class ProjectMemberAdd(BaseModel):
+    user_id: UUID
+
+class ProjectMemberRead(BaseModel):
+    user_id: UUID
+    project_id: UUID
+    joined_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class ProjectMemberListResponse(BaseModel):
+    members: list[ProjectMemberRead]

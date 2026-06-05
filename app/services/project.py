@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.models.project import Project as ProjectModel
 from app.models.project import ProjectMember as ProjectMemberModel
 from app.models.user import User as UserModel
-from app.schemas.project import ProjectCreate, ProjectUpdate
+from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectMemberAdd
 from app.core.exceptions import ProjectNotFoundException, UserNotFoundException, MemberRemovalError
 
 
@@ -56,13 +56,13 @@ def delete_project_from_db(db: Session, project_id: uuid.UUID) -> None:
 
 
 def add_project_member_in_db(
-    db: Session, project_id: uuid.UUID, user_id: uuid.UUID
+    db: Session, project_id: uuid.UUID, member_in: ProjectMemberAdd
 ) -> ProjectMemberModel:
     project = get_project_from_db(db, project_id)
-    user = db.get(UserModel, user_id)
+    user = db.get(UserModel, member_in.user_id)
 
     if not user:
-        raise UserNotFoundException(f"User with ID '{user_id}' not found.")
+        raise UserNotFoundException(f"User with ID '{member_in.user_id}' not found.")
 
     existing_membership = db.get(ProjectMemberModel, (project.id, user.id))
     if existing_membership:
@@ -75,23 +75,28 @@ def add_project_member_in_db(
     return new_membership
 
 
-def remove_project_member_in_db(
-    db: Session, project_id: uuid.UUID, user_id: uuid.UUID
+def remove_project_member_from_db(
+    db: Session, project_id: uuid.UUID, member_in: ProjectMemberAdd
 ) -> None:
     project = get_project_from_db(db, project_id)
-    user = db.get(UserModel, user_id)
+    user = db.get(UserModel, member_in.user_id)
 
     if not user:
-        raise UserNotFoundException(f"User with ID '{user_id}' not found.")
+        raise UserNotFoundException(f"User with ID '{member_in.user_id}' not found.")
 
     existing_membership = db.get(ProjectMemberModel, (project.id, user.id))
     if not existing_membership:
-        raise MemberRemovalError(f"Member with ID '{user_id}' is not part of project with ID '{project_id}'.")
+        raise MemberRemovalError(f"Member with ID '{member_in.user_id}' is not part of project with ID '{project_id}'.")
 
     db.delete(existing_membership)
     db.commit()
 
 
+#Improvement: apply join 
 def list_project_members_from_db(db: Session, project_id: uuid.UUID) -> list[UserModel]:
-    project = get_project_from_db(db, project_id)
-    return [membership.user for membership in project.members]
+    results = (db.query(UserModel)
+        .join(ProjectMemberModel, UserModel.id == ProjectMemberModel.user_id)
+        .filter(ProjectMemberModel.project_id == project_id).all())
+    return results
+    
+    
