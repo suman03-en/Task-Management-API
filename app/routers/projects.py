@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.dependencies import get_db
 from app.schemas.project import ProjectCreate, ProjectRead, ProjectUpdate
-from app.schemas.task import TaskRead, TaskListResponse
+from app.schemas.task import TaskRead, TaskListResponse, TaskCreate, TaskInDB
 from app.schemas.user import UserRead
 from app.services.project import (
     add_project_member_in_db,
@@ -17,10 +17,9 @@ from app.services.project import (
     remove_project_member_in_db,
     update_project_in_db,
 )
-from app.services.task import list_tasks_from_db, get_task_count_from_db
+from app.services.task import list_tasks_from_db, get_task_count_from_db, create_task_in_db
 
 project_router = APIRouter(prefix="/projects", tags=["projects"])
-
 
 DbSession = Annotated[Session, Depends(get_db)]
 
@@ -51,6 +50,10 @@ def update_project(project_id: uuid.UUID, project_in: ProjectUpdate, db: DbSessi
 def delete_project(project_id: uuid.UUID, db: DbSession):
     delete_project_from_db(db, project_id)
 
+@project_router.post("/{project_id}/tasks", response_model=TaskRead, status_code=status.HTTP_201_CREATED)
+def create_task_for_project(project_id: uuid.UUID, task_in: TaskCreate, db: DbSession):
+    task_in_db = TaskInDB(**task_in.model_dump(), project_id=project_id)
+    return create_task_in_db(db, task_in_db)
 
 @project_router.get("/{project_id}/tasks", response_model=TaskListResponse)
 def list_tasks(project_id: uuid.UUID, db: DbSession):

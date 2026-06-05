@@ -22,13 +22,8 @@ CurrentUser = Annotated[UserModel, Depends(get_current_user)]
 
 @user_router.post("", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 def register_user(user_in: UserCreate, db: DbSession):
-    try:
-        return create_user_in_db(db, user_in)
-    except ValueError as ve:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(ve)
-        )
+    return create_user_in_db(db, user_in)
+
 
 @user_router.get("", response_model=list[UserRead])
 def list_users(db: DbSession):

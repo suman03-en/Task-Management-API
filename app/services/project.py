@@ -7,17 +7,12 @@ from app.models.project import Project as ProjectModel
 from app.models.project import ProjectMember as ProjectMemberModel
 from app.models.user import User as UserModel
 from app.schemas.project import ProjectCreate, ProjectUpdate
+from app.core.exceptions import ProjectNotFoundException, UserNotFoundException, MemberRemovalError
 
 
 def create_project_in_db(db: Session, project_in: ProjectCreate) -> ProjectModel:
-    if (
-        project_in.owner_id is not None
-        and db.get(UserModel, project_in.owner_id) is None
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Owner not found.",
-        )
+    if db.get(UserModel, project_in.owner_id) is None:
+        raise UserNotFoundException(f"Owner with ID '{project_in.owner_id}' not found.")
 
     project_db = ProjectModel(**project_in.model_dump())
     db.add(project_db)
@@ -34,10 +29,7 @@ def list_projects_from_db(db: Session):
 def get_project_from_db(db: Session, project_id: uuid.UUID) -> ProjectModel:
     project = db.get(ProjectModel, project_id)
     if project is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found.",
-        )
+        raise ProjectNotFoundException(f"Project with ID '{project_id}' not found.")
     return project
 
 
@@ -47,10 +39,7 @@ def update_project_in_db(
     project_db = db.get(ProjectModel, project_id)
 
     if not project_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found.",
-        )
+        raise ProjectNotFoundException(f"Project with ID '{project_id}' not found.")
 
     for field, value in project_in.model_dump(exclude_unset=True).items():
         setattr(project_db, field, value)
@@ -72,21 +61,18 @@ def add_project_member_in_db(
     project = get_project_from_db(db, project_id)
     user = db.get(UserModel, user_id)
 
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Failed to add member to project.",
-        )
+    if not user:
+        raise UserNotFoundException(f"User with ID '{user_id}' not found.")
 
-    membership = db.get(ProjectMemberModel, (project.id, user.id))
-    if membership is not None:
-        return membership
+    existing_membership = db.get(ProjectMemberModel, (project.id, user.id))
+    if existing_membership:
+        return existing_membership
 
-    membership = ProjectMemberModel(project_id=project.id, user_id=user.id)
-    db.add(membership)
+    new_membership = ProjectMemberModel(project_id=project.id, user_id=user.id)
+    db.add(new_membership)
     db.commit()
-    db.refresh(membership)
-    return membership
+    db.refresh(new_membership)
+    return new_membership
 
 
 def remove_project_member_in_db(
@@ -95,20 +81,14 @@ def remove_project_member_in_db(
     project = get_project_from_db(db, project_id)
     user = db.get(UserModel, user_id)
 
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Failed to remove member from project.",
-        )
+    if not user:
+        raise UserNotFoundException(f"User with ID '{user_id}' not found.")
 
-    membership = db.get(ProjectMemberModel, (project.id, user.id))
-    if membership is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project member not found.",
-        )
+    existing_membership = db.get(ProjectMemberModel, (project.id, user.id))
+    if not existing_membership:
+        raise MemberRemovalError(f"Member with ID '{user_id}' is not part of project with ID '{project_id}'.")
 
-    db.delete(membership)
+    db.delete(existing_membership)
     db.commit()
 
 

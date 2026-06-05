@@ -12,10 +12,11 @@ from app.dependencies import oauth_scheme
 from app.auth.jwt_handler import decode_jwt_token
 from app.auth.security import verify_password, get_password_hash
 from app.dependencies import get_db
+from app.core.exceptions import UserAlreadyExistsException, UserNotFoundException
 
 def create_user_in_db(db: Session, user_in: UserCreate) -> UserModel:
     if get_user_by_username(db, user_in.username):
-        raise ValueError("Username already exists.")
+        raise UserAlreadyExistsException(f"User with username '{user_in.username}' already exists.")
     hashed_password = get_password_hash(user_in.password)
     user_db = UserModel(
         username=user_in.username,
@@ -36,10 +37,7 @@ def list_users_from_db(db: Session) -> list[UserModel]:
 def get_user_from_db(db: Session, user_id: uuid.UUID) -> UserModel:
     user_db = db.get(UserModel, user_id)
     if user_db is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found.",
-        )
+        raise UserNotFoundException(f"User with ID '{user_id}' not found.")
     return user_db
 
 def get_user_by_username(db: Session, username: str) -> UserModel | None:
@@ -47,26 +45,19 @@ def get_user_by_username(db: Session, username: str) -> UserModel | None:
 
 def authenticate_user(db: Session, username: str, password: str):
     user = get_user_by_username(db, username=username)
-    if user is None:
-        return None
-    if not verify_password(password, user.hashed_password):
-        return None
-    return user
+    if user and verify_password(password, user.hashed_password):
+        return user 
+    return None
 
 def get_current_user(token: Annotated[str, Depends(oauth_scheme)], db: Session = Depends(get_db)) -> UserModel:
-    credentials_exception = HTTPException(
-    status_code=status.HTTP_401_UNAUTHORIZED,
-    detail="Could not validate credentials",
-    headers={"WWW-Authenticate": "Bearer"},
-    )
     payload = decode_jwt_token(token)
     username = payload.get("sub")
     if username is None:
-        raise credentials_exception
+        raise UserNotFoundException("Could not validate credentials.")
     token_data = TokenData(username=username)
     user = get_user_by_username(db, username=token_data.username)
     if user is None:
-        raise credentials_exception
+        raise UserNotFoundException("Could not validate credentials.")
     return user
 
 

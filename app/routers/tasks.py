@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 from app.dependencies import get_db
 from app.schemas.task import TaskCreate, TaskRead, TaskUpdate
 from app.services.task import (
-    create_task_in_db,
     get_task_from_db,
     update_task_in_db,
     delete_task_from_db,
@@ -14,13 +13,7 @@ from app.services.task import (
 
 task_router = APIRouter(prefix="/tasks", tags=["tasks"])
 
-
 DbSession = Annotated[Session, Depends(get_db)]
-
-
-@task_router.post("", response_model=TaskRead, status_code=status.HTTP_201_CREATED)
-def create_task(task_in: TaskCreate, db: DbSession):
-    return create_task_in_db(db, task_in)
 
 
 @task_router.get("/{task_id}", response_model=TaskRead)

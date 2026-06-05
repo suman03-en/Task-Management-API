@@ -1,9 +1,11 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
 
 from app.core.config import get_settings
 from app.db.database import init_db
 from app.routers import project_router, user_router, task_router
+from app.core.exceptions import UserAlreadyExistsException, UserNotFoundException, TaskNotFoundException, ProjectNotFoundException 
 
 settings = get_settings()
 
@@ -24,6 +26,33 @@ api.include_router(task_router)
 async def root():
     return {"status": "ok", "app": settings.app_name}
 
+@api.exception_handler(UserNotFoundException)
+async def user_not_found_handler(request: Request, exc: UserNotFoundException):
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"detail": str(exc)}
+    )
+
+@api.exception_handler(UserAlreadyExistsException)
+async def user_already_exists_handler(request: Request, exc: UserAlreadyExistsException):
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={"detail": str(exc)}
+    )
+
+@api.exception_handler(TaskNotFoundException)
+async def task_not_found_handler(request: Request, exc: TaskNotFoundException):
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"detail": str(exc)}
+    )
+
+@api.exception_handler(ProjectNotFoundException)
+async def project_not_found_handler(request: Request, exc: ProjectNotFoundException):
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"detail": str(exc)}
+    )
 
 if __name__ == "__main__":
     import uvicorn

@@ -5,11 +5,13 @@ from pydantic import BaseModel, ConfigDict
 class TaskBase(BaseModel):
     name: str
     description: str | None = None
-    project_id: uuid.UUID
 
 class TaskCreate(TaskBase):
     pass
 
+class TaskInDB(TaskBase):
+    project_id: uuid.UUID
+    
 class TaskRead(TaskBase):
     model_config = ConfigDict(from_attributes=True)
 
