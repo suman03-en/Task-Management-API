@@ -7,6 +7,7 @@ from sqlalchemy import pool
 
 from alembic import context
 
+from app import models
 from app.db.database import Base
 
 # load .env file

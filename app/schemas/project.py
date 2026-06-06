@@ -8,11 +8,10 @@ from pydantic import BaseModel, ConfigDict, Field
 class ProjectBase(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     description: str = Field(default="", max_length=5000)
-    owner_id: Optional[UUID] = None
 
 
 class ProjectCreate(ProjectBase):
-    pass
+    owner_id: Optional[UUID] = None
 
 
 class ProjectUpdate(BaseModel):
@@ -23,6 +22,7 @@ class ProjectUpdate(BaseModel):
 
 class ProjectRead(ProjectBase):
     id: UUID
+    owner_id: Optional[UUID] = None
     created_at: datetime
     updated_at: datetime
 

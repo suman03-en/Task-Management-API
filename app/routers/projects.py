@@ -1,18 +1,20 @@
 import uuid
 from typing import Annotated
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.dependencies import get_db
+from app.models.user import User as UserModel
 from app.schemas.project import (
-    ProjectCreate, 
+    ProjectBase, 
+    ProjectCreate,
     ProjectRead, 
     ProjectUpdate, 
     ProjectMemberAdd, 
     ProjectMemberRead
 )
 from app.schemas.task import TaskRead, TaskListResponse, TaskCreate, TaskInDB
-from app.schemas.user import UserRead, ProjectMember
+from app.schemas.user import UserRead
 from app.services.project import (
     add_project_member_in_db,
     create_project_in_db,
@@ -24,17 +26,19 @@ from app.services.project import (
     update_project_in_db,
 )
 from app.services.task import list_tasks_from_db, get_task_count_from_db, create_task_in_db
+from app.services.user import get_current_user
 
 project_router = APIRouter(prefix="/projects", tags=["projects"])
 
 DbSession = Annotated[Session, Depends(get_db)]
-
+CurrentUser = Annotated[UserModel, Depends(get_current_user)]
 
 @project_router.post(
     "", response_model=ProjectRead, status_code=status.HTTP_201_CREATED
 )
-def create_project(project_in: ProjectCreate, db: DbSession):
-    return create_project_in_db(db, project_in)
+def create_project(project_in: ProjectBase,current_user: CurrentUser, db: DbSession):
+    project_create = ProjectCreate(**project_in.model_dump(), owner_id=current_user.id)
+    return create_project_in_db(db, project_create)
 
 
 @project_router.get("", response_model=list[ProjectRead])

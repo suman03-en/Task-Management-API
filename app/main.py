@@ -3,7 +3,6 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
 from app.core.config import get_settings
-from app.db.database import init_db
 from app.routers import project_router, user_router, task_router
 from app.core.exceptions import UserAlreadyExistsException, UserNotFoundException, TaskNotFoundException, ProjectNotFoundException 
 
