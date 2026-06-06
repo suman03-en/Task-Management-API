@@ -1,7 +1,10 @@
+import os
 from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass
 from functools import lru_cache
-import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 timezone_nepal = timezone(timedelta(hours=5, minutes=45), name="Asia/Kathmandu")
 
@@ -26,3 +29,7 @@ def get_settings() -> Settings:
         debug=debug_value in {"1", "true", "yes", "on"},
         database_url=os.getenv("DATABASE_URL", "sqlite:///./task_management.db"),
     )
+
+if __name__ == "__main__":
+    settings = get_settings()
+    print(settings)

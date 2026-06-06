@@ -10,13 +10,7 @@ from app.core.exceptions import UserAlreadyExistsException, UserNotFoundExceptio
 settings = get_settings()
 
 
-@asynccontextmanager
-async def lifespan(api: FastAPI):
-    init_db()
-    yield
-
-
-api = FastAPI(title=settings.app_name, debug=settings.debug, lifespan=lifespan)
+api = FastAPI(title=settings.app_name, debug=settings.debug)
 api.include_router(user_router)
 api.include_router(project_router)
 api.include_router(task_router)
