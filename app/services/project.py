@@ -92,11 +92,14 @@ def remove_project_member_from_db(
     db.commit()
 
 
-#Improvement: apply join 
 def list_project_members_from_db(db: Session, project_id: uuid.UUID) -> list[UserModel]:
     results = (db.query(UserModel)
         .join(ProjectMemberModel, UserModel.id == ProjectMemberModel.user_id)
         .filter(ProjectMemberModel.project_id == project_id).all())
     return results
+
+def _check_project_membership(db: Session, project_id: uuid.UUID, user_id: uuid.UUID) -> bool:
+    membership = db.get(ProjectMemberModel, (project_id, user_id))
+    return membership is not None
     
     

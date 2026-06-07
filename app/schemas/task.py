@@ -2,9 +2,14 @@ import uuid
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
+from app.core.constants import TaskStatus, TaskPriority
+
 class TaskBase(BaseModel):
     name: str
     description: str | None = None
+    priority: TaskPriority = TaskPriority.MEDIUM
+    status: TaskStatus = TaskStatus.PENDING
+    assigned_to: uuid.UUID | None = None
 
 class TaskCreate(TaskBase):
     pass
@@ -22,7 +27,10 @@ class TaskRead(TaskBase):
 
 class TaskUpdate(BaseModel):
     name: str | None = None
-    description: str | None = None  
+    description: str | None = None
+    priority: TaskPriority | None = None
+    status: TaskStatus | None = None
+    assigned_to: uuid.UUID | None = None
 
 
 class TaskListResponse(BaseModel):
