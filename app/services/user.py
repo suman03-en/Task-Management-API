@@ -50,6 +50,8 @@ def authenticate_user(db: Session, username: str, password: str):
         return user 
     return None
 
+
+# place this function in a more appropriate file
 def get_current_user(token: Annotated[str, Depends(oauth_scheme)], db: Session = Depends(get_db)) -> UserModel:
     payload = decode_jwt_token(token)
     username = payload.get("sub")

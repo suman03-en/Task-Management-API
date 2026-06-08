@@ -50,8 +50,8 @@ def list_projects(db: DbSession):
 
 
 @project_router.get("/{project_id}", response_model=ProjectRead)
-def get_project(project_id: uuid.UUID, db: DbSession):
-    return get_project_from_db(db, project_id)
+def get_project(project_id: uuid.UUID, db: DbSession, current_user: CurrentUser):
+    return get_project_from_db(db, current_user, project_id)
 
 
 @project_router.patch("/{project_id}", response_model=ProjectRead)
@@ -60,8 +60,8 @@ def update_project(project_id: uuid.UUID, project_in: ProjectUpdate, db: DbSessi
 
 
 @project_router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_project(project_id: uuid.UUID, db: DbSession):
-    delete_project_from_db(db, project_id)
+def delete_project(project_id: uuid.UUID, db: DbSession, current_user: CurrentUser):
+    delete_project_from_db(db, project_id, current_user)
 
 @project_router.post("/{project_id}/tasks", response_model=TaskRead, status_code=status.HTTP_201_CREATED)
 def create_task_for_project(project_id: uuid.UUID, task_in: TaskCreate, db: DbSession):
@@ -84,13 +84,13 @@ def list_project_members(project_id: uuid.UUID, db: DbSession):
 @project_router.post(
     "/{project_id}/members", response_model=ProjectMemberRead, status_code=status.HTTP_201_CREATED
 )
-def add_project_member(project_id: uuid.UUID, member_in: ProjectMemberAdd, db: DbSession):
-   return add_project_member_in_db(db, project_id, member_in)
+def add_project_member(project_id: uuid.UUID, member_in: ProjectMemberAdd, db: DbSession, current_user: CurrentUser):
+   return add_project_member_in_db(db, project_id, member_in, current_user)
 
 
 
 @project_router.delete(
     "/{project_id}/members", status_code=status.HTTP_204_NO_CONTENT
 )
-def remove_project_member(project_id: uuid.UUID, member_in: ProjectMemberAdd, db: DbSession):
-    remove_project_member_from_db(db, project_id, member_in)
+def remove_project_member(project_id: uuid.UUID, member_in: ProjectMemberAdd, db: DbSession, current_user: CurrentUser):
+    remove_project_member_from_db(db, project_id, member_in, current_user)
