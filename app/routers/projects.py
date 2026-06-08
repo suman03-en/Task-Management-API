@@ -28,15 +28,18 @@ from app.services.project import (
 from app.services.task import list_tasks_from_db, get_task_count_from_db, create_task_in_db
 from app.services.user import get_current_user
 
-project_router = APIRouter(prefix="/projects", tags=["projects"])
+
+
+CurrentUser = Annotated[UserModel, Depends(get_current_user)]
+
+project_router = APIRouter(prefix="/projects", tags=["projects"], dependencies=[Depends(get_current_user)])
 
 DbSession = Annotated[Session, Depends(get_db)]
-CurrentUser = Annotated[UserModel, Depends(get_current_user)]
 
 @project_router.post(
     "", response_model=ProjectRead, status_code=status.HTTP_201_CREATED
 )
-def create_project(project_in: ProjectBase,current_user: CurrentUser, db: DbSession):
+def create_project(project_in: ProjectBase, current_user: CurrentUser, db: DbSession):
     project_create = ProjectCreate(**project_in.model_dump(), owner_id=current_user.id)
     return create_project_in_db(db, project_create)
 

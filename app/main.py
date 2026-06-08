@@ -2,9 +2,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
+from sqlalchemy.exc import OperationalError
+
 from app.core.config import get_settings
 from app.routers import project_router, user_router, task_router
 from app.core.exceptions import UserAlreadyExistsException, UserNotFoundException, TaskNotFoundException, ProjectNotFoundException 
+
 
 settings = get_settings()
 
@@ -18,6 +21,14 @@ api.include_router(task_router)
 @api.get("/")
 async def root():
     return {"status": "ok", "app": settings.app_name}
+
+@api.exception_handler(OperationalError)
+async def database_operational_exception_handler(request: Request, exc: OperationalError):
+    print(f"Database connection error: {exc}") #for debugging purposes
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={"detail": "Database connection error. Please try again later."}
+    )
 
 @api.exception_handler(UserNotFoundException)
 async def user_not_found_handler(request: Request, exc: UserNotFoundException):

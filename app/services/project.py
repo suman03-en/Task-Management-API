@@ -1,5 +1,5 @@
 import uuid
-from fastapi import HTTPException, status
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -21,7 +21,7 @@ def create_project_in_db(db: Session, project_in: ProjectCreate) -> ProjectModel
     return project_db
 
 
-def list_projects_from_db(db: Session):
+def list_projects_from_db(db: Session) :
     statement = select(ProjectModel).order_by(ProjectModel.created_at.desc())
     return db.scalars(statement).all()
 

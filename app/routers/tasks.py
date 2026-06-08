@@ -1,6 +1,7 @@
-from typing import Annotated
-from fastapi import APIRouter, Depends, status, HTTPException, Body
 import uuid
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, status, HTTPException, Body
 from sqlalchemy.orm import Session
 
 from app.dependencies import get_db
@@ -11,10 +12,13 @@ from app.services.task import (
     delete_task_from_db,
     assign_task_to_user_in_db
 )
+from app.models.user import User as UserModel
+from app.services.user import get_current_user
 from app.core.constants import TaskStatus
 
+CurrentUser = Annotated[UserModel, Depends(get_current_user)]
 
-task_router = APIRouter(prefix="/tasks", tags=["tasks"])
+task_router = APIRouter(prefix="/tasks", tags=["tasks"], dependencies=[Depends(get_current_user)])
 
 DbSession = Annotated[Session, Depends(get_db)]
 

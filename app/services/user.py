@@ -8,11 +8,12 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.models.user import User as UserModel
 from app.schemas.user import UserCreate, TokenData, UserInDB
-from app.dependencies import oauth_scheme
+from app.dependencies import oauth_scheme, get_db
 from app.auth.jwt_handler import decode_jwt_token
 from app.auth.security import verify_password, get_password_hash
-from app.dependencies import get_db
 from app.core.exceptions import UserAlreadyExistsException, UserNotFoundException
+
+
 
 def create_user_in_db(db: Session, user_in: UserCreate) -> UserModel:
     if get_user_by_username(db, user_in.username):
