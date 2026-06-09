@@ -6,7 +6,13 @@ from sqlalchemy.exc import OperationalError
 
 from app.core.config import get_settings
 from app.routers import project_router, user_router, task_router
-from app.core.exceptions import UserAlreadyExistsException, UserNotFoundException, TaskNotFoundException, ProjectNotFoundException 
+from app.core.exceptions import (
+    UserAlreadyExistsException, 
+    UserNotFoundException, 
+    TaskNotFoundException, 
+    ProjectNotFoundException,
+    MemberAdditionError
+)
 
 
 settings = get_settings()
@@ -57,6 +63,15 @@ async def project_not_found_handler(request: Request, exc: ProjectNotFoundExcept
         status_code=status.HTTP_404_NOT_FOUND,
         content={"detail": str(exc)}
     )
+
+@api.exception_handler(MemberAdditionError)
+async def member_addition_error_handler(request: Request, exc: MemberAdditionError):
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={"detail": str(exc)}
+    )
+
+
 
 if __name__ == "__main__":
     import uvicorn

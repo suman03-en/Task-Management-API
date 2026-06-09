@@ -11,6 +11,7 @@ from app.core.exceptions import (
     ProjectNotFoundException,
     UserNotFoundException,
     MemberRemovalError,
+    MemberAdditionError,
 )
 
 
@@ -69,6 +70,8 @@ def delete_project_from_db(
     db: Session, project_id: uuid.UUID, current_user: UserModel
 ) -> None:
     project = get_project_from_db(db, current_user, project_id)
+    if project.owner_id != current_user.id:
+        raise ProjectNotFoundException(f"Project with ID '{project_id}' not found.")
     db.delete(project)
     db.commit()
 
@@ -85,6 +88,9 @@ def add_project_member_in_db(
     if not user:
         raise UserNotFoundException(f"User with ID '{member_in.user_id}' not found.")
 
+    if project.owner_id != current_user.id:
+        raise MemberAdditionError(f"Only the project owner can add members to the project.")
+    
     existing_membership = db.get(ProjectMemberModel, (project.id, user.id))
     if existing_membership:
         return existing_membership
@@ -108,6 +114,9 @@ def remove_project_member_from_db(
     if not user:
         raise UserNotFoundException(f"User with ID '{member_in.user_id}' not found.")
 
+    if project.owner_id != current_user.id:
+        raise MemberRemovalError(f"Only the project owner can remove members from the project.")
+    
     existing_membership = db.get(ProjectMemberModel, (project.id, user.id))
     if not existing_membership:
         raise MemberRemovalError(
