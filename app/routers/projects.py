@@ -55,8 +55,8 @@ def get_project(project_id: uuid.UUID, db: DbSession, current_user: CurrentUser)
 
 
 @project_router.patch("/{project_id}", response_model=ProjectRead)
-def update_project(project_id: uuid.UUID, project_in: ProjectUpdate, db: DbSession):
-    return update_project_in_db(db, project_id, project_in)
+def update_project(project_id: uuid.UUID, project_in: ProjectUpdate, db: DbSession, current_user: CurrentUser):
+    return update_project_in_db(db, project_id, project_in, current_user)
 
 
 @project_router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -69,10 +69,10 @@ def create_task_for_project(project_id: uuid.UUID, task_in: TaskCreate, db: DbSe
     return create_task_in_db(db, task_in_db, current_user)
 
 @project_router.get("/{project_id}/tasks", response_model=TaskListResponse)
-def list_tasks(project_id: uuid.UUID, db: DbSession):
+def list_tasks(project_id: uuid.UUID, db: DbSession, current_user: CurrentUser):
     db_tasks = list_tasks_from_db(project_id, db)
     tasks = [TaskRead.model_validate(task) for task in db_tasks]
-    count = get_task_count_from_db(project_id, db)
+    count = get_task_count_from_db(project_id, db, current_user)
     return TaskListResponse(tasks=tasks, count=count)
 
 
