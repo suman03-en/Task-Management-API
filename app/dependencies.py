@@ -17,8 +17,5 @@ def get_db():
     finally:
         db.close()
 
-def validate_project_id(id: uuid.UUID, db: Session = Depends(get_db)):
-    project = db.get(Project, id)
-    return project is not None
 
 

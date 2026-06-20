@@ -4,7 +4,7 @@ from app.db.database import SessionLocal
 
 mapping = {
     "admin": "all",
-    "creator": [
+    "user": [
         ("create", "project"),
         ("read", "project"),
         ("update", "project"),
@@ -13,20 +13,15 @@ mapping = {
         ("read", "task"),
         ("update", "task"),
         ("delete", "task"),
-        ("add_member", "project_members"),
-        ("remove_member", "project_members")
-    ],
-    "member": [
-        ("read", "project"),
-        ("read", "task")
+        # ("add_member", "project_members"),
+        # ("remove_member", "project_members")
     ]
 }
 
 def create_roles():
     roles = [
         Role(name="admin"),
-        Role(name="creator"),  # Role for project creators
-        Role(name="member")  # Role for project members
+        Role(name="user")  # Role for regular users
     ]
     return roles
 
@@ -46,6 +41,7 @@ def create_permissions():
         Permission(action="remove_role", resource="roles"),
         Permission(action="add_permission", resource="permissions"),
         Permission(action="remove_permission", resource="permissions"),
+        Permission(action="delete_users", resource="users"),
 
     ]
     return permissions
@@ -87,6 +83,7 @@ def seed_rbac():
             if not exists:
                 print(f"Adding permission: {permission.action} {permission.resource}")
                 db.add(permission)
+        db.flush()  # flush to get IDs for role-permission mapping
         
         # assign permissions to roles based on the mapping
         for role_name, perms in mapping.items():
