@@ -12,7 +12,7 @@ from app.schemas.user import UserCreate, UserRead, Token
 from app.models.user import User as UserModel
 from app.services.user import create_user_in_db, get_user_from_db, list_users_from_db, authenticate_user, get_current_user
 from app.auth.jwt_handler import create_access_token
-
+from app.authorization.permissions import require_permission
 
 
 user_router = APIRouter(prefix="/users", tags=["users"])
@@ -31,11 +31,11 @@ def register_user(user_in: UserCreate, db: DbSession):
 
 
 @protected_router.get("/list", response_model=list[UserRead])
-def list_users(db: DbSession):
+def list_users(db: DbSession, _: UserModel = Depends(require_permission("read", "user"))):
     return list_users_from_db(db)
 
 @protected_router.get("/{user_id}", response_model=UserRead)
-def get_user(user_id: uuid.UUID, db: DbSession):
+def get_user(user_id: uuid.UUID, db: DbSession, _: UserModel = Depends(require_permission("read", "user"))):
     return get_user_from_db(db, user_id)
 
 

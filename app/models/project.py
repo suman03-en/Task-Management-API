@@ -51,7 +51,8 @@ class ProjectMember(Base):
     joined_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, nullable=False
     )   
-
+    role: Mapped[str] = mapped_column(String(50), nullable=False, default="member")
+    
     project = relationship("Project", back_populates="members")
     user = relationship("User", back_populates="project_memberships")
 

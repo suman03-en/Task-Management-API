@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.dependencies import get_db
 from app.models.user import User as UserModel
+from app.models.project import ProjectMember
 from app.schemas.project import (
     ProjectBase, 
     ProjectCreate,
@@ -27,7 +28,7 @@ from app.services.project import (
 )
 from app.services.task import list_tasks_from_db, get_task_count_from_db, create_task_in_db
 from app.services.user import get_current_user
-
+from app.authorization.permissions import require_project_permission
 
 
 CurrentUser = Annotated[UserModel, Depends(get_current_user)]
@@ -50,17 +51,17 @@ def list_projects(db: DbSession):
 
 
 @project_router.get("/{project_id}", response_model=ProjectRead)
-def get_project(project_id: uuid.UUID, db: DbSession, current_user: CurrentUser):
+def get_project(project_id: uuid.UUID, db: DbSession, current_user: CurrentUser, _: ProjectMember = Depends(require_project_permission("read", "project"))):
     return get_project_from_db(db, current_user, project_id)
 
 
 @project_router.patch("/{project_id}", response_model=ProjectRead)
-def update_project(project_id: uuid.UUID, project_in: ProjectUpdate, db: DbSession, current_user: CurrentUser):
+def update_project(project_id: uuid.UUID, project_in: ProjectUpdate, db: DbSession, current_user: CurrentUser, _: ProjectMember = Depends(require_project_permission("update", "project"))):
     return update_project_in_db(db, project_id, project_in, current_user)
 
 
 @project_router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_project(project_id: uuid.UUID, db: DbSession, current_user: CurrentUser):
+def delete_project(project_id: uuid.UUID, db: DbSession, current_user: CurrentUser, _: ProjectMember = Depends(require_project_permission("delete", "project"))):
     delete_project_from_db(db, project_id, current_user)
 
 @project_router.post("/{project_id}/tasks", response_model=TaskRead, status_code=status.HTTP_201_CREATED)
@@ -70,21 +71,21 @@ def create_task_for_project(project_id: uuid.UUID, task_in: TaskCreate, db: DbSe
 
 @project_router.get("/{project_id}/tasks", response_model=TaskListResponse)
 def list_tasks(project_id: uuid.UUID, db: DbSession, current_user: CurrentUser):
-    db_tasks = list_tasks_from_db(project_id, db)
+    db_tasks = list_tasks_from_db(project_id, db, current_user)
     tasks = [TaskRead.model_validate(task) for task in db_tasks]
     count = get_task_count_from_db(project_id, db, current_user)
     return TaskListResponse(tasks=tasks, count=count)
 
 
 @project_router.get("/{project_id}/members", response_model=list[UserRead])
-def list_project_members(project_id: uuid.UUID, db: DbSession):
+def list_project_members(project_id: uuid.UUID, db: DbSession, current_user: CurrentUser, _: ProjectMember = Depends(require_project_permission("read", "project"))):
     return list_project_members_from_db(db, project_id)
 
 
 @project_router.post(
     "/{project_id}/members", response_model=ProjectMemberRead, status_code=status.HTTP_201_CREATED
 )
-def add_project_member(project_id: uuid.UUID, member_in: ProjectMemberAdd, db: DbSession, current_user: CurrentUser):
+def add_project_member(project_id: uuid.UUID, member_in: ProjectMemberAdd, db: DbSession, current_user: CurrentUser, _: ProjectMember = Depends(require_project_permission("add_member", "project"))):
    return add_project_member_in_db(db, project_id, member_in, current_user)
 
 
@@ -92,5 +93,5 @@ def add_project_member(project_id: uuid.UUID, member_in: ProjectMemberAdd, db: D
 @project_router.delete(
     "/{project_id}/members", status_code=status.HTTP_204_NO_CONTENT
 )
-def remove_project_member(project_id: uuid.UUID, member_in: ProjectMemberAdd, db: DbSession, current_user: CurrentUser):
+def remove_project_member(project_id: uuid.UUID, member_in: ProjectMemberAdd, db: DbSession, current_user: CurrentUser, _: ProjectMember = Depends(require_project_permission("remove_member", "project"))):
     remove_project_member_from_db(db, project_id, member_in, current_user)

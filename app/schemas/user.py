@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class UserBase(BaseModel):
     username: str = Field(min_length=3, max_length=50)
+    role_id: UUID | None = None
 
 class UserCreate(UserBase):
     password: str

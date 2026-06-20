@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.models.user import User as UserModel
+from app.models.authorization import Role
 from app.schemas.user import UserCreate, TokenData, UserInDB
 from app.dependencies import oauth_scheme, get_db
 from app.auth.jwt_handler import decode_jwt_token
@@ -18,10 +19,17 @@ from app.core.exceptions import UserAlreadyExistsException, UserNotFoundExceptio
 def create_user_in_db(db: Session, user_in: UserCreate) -> UserModel:
     if get_user_by_username(db, user_in.username):
         raise UserAlreadyExistsException(f"User with username '{user_in.username}' already exists.")
+    if user_in.role_id:
+        role_id = user_in.role_id
+    else:
+        role = db.query(Role).filter(Role.name == "user").first()
+        if role:
+            role_id = role.id
     hashed_password = get_password_hash(user_in.password)
     user_db = UserModel(
         username=user_in.username,
-        hashed_password=hashed_password
+        hashed_password=hashed_password,
+        role_id=role_id
     )
     db.add(user_db)
     db.commit()
