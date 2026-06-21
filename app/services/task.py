@@ -15,12 +15,10 @@ from app.services.project import _check_project_membership
 from app.services.user import get_user_from_db
 
 
-def create_task_in_db(db: Session, task_in: TaskInDB, current_user: UserModel) -> Task:
+def create_task_in_db(db: Session, task_in: TaskInDB) -> Task:
     project = db.get(Project, task_in.project_id)
     if project is None:
         raise ProjectNotFoundException(f"Project with ID '{task_in.project_id}' not found.")
-    if project.owner_id != current_user.id:
-        raise Exception(f"Only the project owner can create tasks for the project.")
     task_db = Task(**task_in.model_dump())
     print(task_db)
     db.add(task_db)
@@ -29,11 +27,9 @@ def create_task_in_db(db: Session, task_in: TaskInDB, current_user: UserModel) -
     return task_db
 
 
-def list_tasks_from_db(project_id: uuid.UUID, db: Session, current_user: UserModel) -> list[Task]:
+def list_tasks_from_db(project_id: uuid.UUID, db: Session) -> list[Task]:
     project = db.get(Project, project_id)
     if project is None:
-        raise ProjectNotFoundException(f"Project with ID '{project_id}' not found.")
-    if project.owner_id != current_user.id and not _check_project_membership(db, project_id, current_user.id):
         raise ProjectNotFoundException(f"Project with ID '{project_id}' not found.")
     tasks_db = (
         db.query(Task)
@@ -43,11 +39,9 @@ def list_tasks_from_db(project_id: uuid.UUID, db: Session, current_user: UserMod
     )
     return tasks_db
 
-def get_task_count_from_db(project_id: uuid.UUID, db: Session, current_user: UserModel) -> int:
+def get_task_count_from_db(project_id: uuid.UUID, db: Session) -> int:
     project = db.get(Project, project_id)
     if project is None:
-        raise ProjectNotFoundException(f"Project with ID '{project_id}' not found.")
-    if project.owner_id != current_user.id and not _check_project_membership(db, project_id, current_user.id):
         raise ProjectNotFoundException(f"Project with ID '{project_id}' not found.")
     count = db.query(Task).filter(Task.project_id == project_id).count()
     return count

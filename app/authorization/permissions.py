@@ -5,6 +5,7 @@ from sqlalchemy import select
 from app.services.user import get_current_user
 from app.dependencies import get_db
 from app.models.project import ProjectMember
+from app.models.task import Task
 
 
 PROJECT_ROLE_PERMISSIONS = {
@@ -77,6 +78,35 @@ def require_project_permission(action: str, resource: str):
         
         return membership
     return permission_dependency
+
+def require_task_permission(action: str, resource: str):
+    def permission_dependency(
+            task_id: uuid.UUID,
+            current_user=Depends(get_current_user),
+            db=Depends(get_db)
+            ):
+        task = db.get(Task, task_id)
+        if not task:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
         
+        project_id = task.project_id
+
+        membership = db.scalar(
+            select(ProjectMember).where(
+                ProjectMember.project_id == project_id,
+                ProjectMember.user_id == current_user.id
+            )
+        )
+        if not membership:
+            raise HTTPException(403)
+        
+        role = membership.role
+
+        allowed_permissions = PROJECT_ROLE_PERMISSIONS.get(role, set())
+        if (action, resource) not in allowed_permissions:
+            raise HTTPException(403)
+        
+        return membership
+    return permission_dependency
         
 

@@ -54,7 +54,7 @@ async def login_for_access_token(
     access_token = create_access_token(data={"sub": user.username}, expires_delta=timedelta(minutes=30))
     return Token(access_token=access_token, token_type="bearer")
 
-@protected_router.get("/users/me", response_model=UserRead)
+@protected_router.get("/me", response_model=UserRead)
 async def read_users_me(
         current_user: CurrentUser
 ):

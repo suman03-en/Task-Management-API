@@ -32,14 +32,10 @@ def list_projects_from_db(db: Session):
 
 
 def get_project_from_db(
-    db: Session, current_user: UserModel, project_id: uuid.UUID
+    db: Session, project_id: uuid.UUID
 ) -> ProjectModel:
     project = db.get(ProjectModel, project_id)
     if project is None:
-        raise ProjectNotFoundException(f"Project with ID '{project_id}' not found.")
-    if project.owner_id != current_user.id and not _check_project_membership(
-        db, project_id, current_user.id
-    ):
         raise ProjectNotFoundException(f"Project with ID '{project_id}' not found.")
     return project
 
@@ -47,15 +43,11 @@ def get_project_from_db(
 def update_project_in_db(
     db: Session,
     project_id: uuid.UUID,
-    project_in: ProjectUpdate,
-    current_user: UserModel,
+    project_in: ProjectUpdate
 ) -> ProjectModel:
     project_db = db.get(ProjectModel, project_id)
 
     if not project_db:
-        raise ProjectNotFoundException(f"Project with ID '{project_id}' not found.")
-
-    if project_db.owner_id != current_user.id:
         raise ProjectNotFoundException(f"Project with ID '{project_id}' not found.")
 
     for field, value in project_in.model_dump(exclude_unset=True).items():
@@ -69,7 +61,7 @@ def update_project_in_db(
 def delete_project_from_db(
     db: Session, project_id: uuid.UUID, current_user: UserModel
 ) -> None:
-    project = get_project_from_db(db, current_user, project_id)
+    project = get_project_from_db(db, project_id)
     if project.owner_id != current_user.id:
         raise ProjectNotFoundException(f"Project with ID '{project_id}' not found.")
     db.delete(project)
@@ -80,17 +72,13 @@ def add_project_member_in_db(
     db: Session,
     project_id: uuid.UUID,
     member_in: ProjectMemberAdd,
-    current_user: UserModel,
 ) -> ProjectMemberModel:
-    project = get_project_from_db(db, current_user, project_id)
+    project = get_project_from_db(db, project_id)
     user = db.get(UserModel, member_in.user_id)
 
     if not user:
         raise UserNotFoundException(f"User with ID '{member_in.user_id}' not found.")
 
-    if project.owner_id != current_user.id:
-        raise MemberAdditionError(f"Only the project owner can add members to the project.")
-    
     existing_membership = db.get(ProjectMemberModel, (project.id, user.id))
     if existing_membership:
         return existing_membership
@@ -108,15 +96,12 @@ def remove_project_member_from_db(
     member_in: ProjectMemberAdd,
     current_user: UserModel,
 ) -> None:
-    project = get_project_from_db(db, current_user, project_id)
+    project = get_project_from_db(db, project_id)
     user = db.get(UserModel, member_in.user_id)
 
     if not user:
         raise UserNotFoundException(f"User with ID '{member_in.user_id}' not found.")
 
-    if project.owner_id != current_user.id:
-        raise MemberRemovalError(f"Only the project owner can remove members from the project.")
-    
     existing_membership = db.get(ProjectMemberModel, (project.id, user.id))
     if not existing_membership:
         raise MemberRemovalError(

@@ -65,12 +65,12 @@ def delete_project(project_id: uuid.UUID, db: DbSession, current_user: CurrentUs
     delete_project_from_db(db, project_id, current_user)
 
 @project_router.post("/{project_id}/tasks", response_model=TaskRead, status_code=status.HTTP_201_CREATED)
-def create_task_for_project(project_id: uuid.UUID, task_in: TaskCreate, db: DbSession, current_user: CurrentUser):
+def create_task_for_project(project_id: uuid.UUID, task_in: TaskCreate, db: DbSession, current_user: CurrentUser, _: ProjectMember = Depends(require_project_permission("create", "task"))):
     task_in_db = TaskInDB(**task_in.model_dump(), project_id=project_id)
     return create_task_in_db(db, task_in_db, current_user)
 
 @project_router.get("/{project_id}/tasks", response_model=TaskListResponse)
-def list_tasks(project_id: uuid.UUID, db: DbSession, current_user: CurrentUser):
+def list_tasks(project_id: uuid.UUID, db: DbSession, current_user: CurrentUser, _: ProjectMember = Depends(require_project_permission("read", "task"))):
     db_tasks = list_tasks_from_db(project_id, db, current_user)
     tasks = [TaskRead.model_validate(task) for task in db_tasks]
     count = get_task_count_from_db(project_id, db, current_user)
