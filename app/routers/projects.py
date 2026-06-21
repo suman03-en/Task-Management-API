@@ -46,18 +46,18 @@ def create_project(project_in: ProjectBase, current_user: CurrentUser, db: DbSes
 
 
 @project_router.get("", response_model=list[ProjectRead])
-def list_projects(db: DbSession):
-    return list_projects_from_db(db)
+def list_projects(db: DbSession, current_user: CurrentUser):
+    return list_projects_from_db(db, current_user)
 
 
 @project_router.get("/{project_id}", response_model=ProjectRead)
 def get_project(project_id: uuid.UUID, db: DbSession, current_user: CurrentUser, _: ProjectMember = Depends(require_project_permission("read", "project"))):
-    return get_project_from_db(db, current_user, project_id)
+    return get_project_from_db(db, project_id)
 
 
 @project_router.patch("/{project_id}", response_model=ProjectRead)
 def update_project(project_id: uuid.UUID, project_in: ProjectUpdate, db: DbSession, current_user: CurrentUser, _: ProjectMember = Depends(require_project_permission("update", "project"))):
-    return update_project_in_db(db, project_id, project_in, current_user)
+    return update_project_in_db(db, project_id, project_in)
 
 
 @project_router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -67,13 +67,13 @@ def delete_project(project_id: uuid.UUID, db: DbSession, current_user: CurrentUs
 @project_router.post("/{project_id}/tasks", response_model=TaskRead, status_code=status.HTTP_201_CREATED)
 def create_task_for_project(project_id: uuid.UUID, task_in: TaskCreate, db: DbSession, current_user: CurrentUser, _: ProjectMember = Depends(require_project_permission("create", "task"))):
     task_in_db = TaskInDB(**task_in.model_dump(), project_id=project_id)
-    return create_task_in_db(db, task_in_db, current_user)
+    return create_task_in_db(db, task_in_db)
 
 @project_router.get("/{project_id}/tasks", response_model=TaskListResponse)
 def list_tasks(project_id: uuid.UUID, db: DbSession, current_user: CurrentUser, _: ProjectMember = Depends(require_project_permission("read", "task"))):
-    db_tasks = list_tasks_from_db(project_id, db, current_user)
+    db_tasks = list_tasks_from_db(project_id, db)
     tasks = [TaskRead.model_validate(task) for task in db_tasks]
-    count = get_task_count_from_db(project_id, db, current_user)
+    count = get_task_count_from_db(project_id, db)
     return TaskListResponse(tasks=tasks, count=count)
 
 
@@ -86,7 +86,7 @@ def list_project_members(project_id: uuid.UUID, db: DbSession, current_user: Cur
     "/{project_id}/members", response_model=ProjectMemberRead, status_code=status.HTTP_201_CREATED
 )
 def add_project_member(project_id: uuid.UUID, member_in: ProjectMemberAdd, db: DbSession, current_user: CurrentUser, _: ProjectMember = Depends(require_project_permission("add_member", "project"))):
-   return add_project_member_in_db(db, project_id, member_in, current_user)
+   return add_project_member_in_db(db, project_id, member_in)
 
 
 

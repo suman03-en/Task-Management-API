@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from sqlalchemy.orm import Session
 
 from app.models.project import Project as ProjectModel
@@ -21,14 +21,28 @@ def create_project_in_db(db: Session, project_in: ProjectCreate) -> ProjectModel
 
     project_db = ProjectModel(**project_in.model_dump())
     db.add(project_db)
+    db.flush()
+    membership = ProjectMemberModel(project_id=project_db.id, user_id=project_in.owner_id, role="creator")
+    db.add(membership)
     db.commit()
     db.refresh(project_db)
     return project_db
 
 
-def list_projects_from_db(db: Session):
-    statement = select(ProjectModel).order_by(ProjectModel.created_at.desc())
-    return db.scalars(statement).all()
+def list_projects_from_db(db: Session, current_user: UserModel):
+    projects = (
+    db.query(ProjectModel)
+    .outerjoin(ProjectModel.members)
+    .filter(
+        or_(
+            ProjectModel.owner_id == current_user.id,
+            ProjectMemberModel.user_id == current_user.id
+        )
+    )
+    .distinct()
+    .all()
+)
+    return projects
 
 
 def get_project_from_db(

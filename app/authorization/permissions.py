@@ -10,6 +10,7 @@ from app.models.task import Task
 
 PROJECT_ROLE_PERMISSIONS = {
     "creator": {
+        ("read", "project"),
         ("create", "task"),
         ("read", "task"),
         ("update", "task"),
