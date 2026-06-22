@@ -1,240 +1,118 @@
-# Task Management API
+# Enterprise Task Management API
 
-A beginner-friendly FastAPI project that teaches real backend concepts without becoming overwhelming.
+A production-ready, high-performance RESTful API for managing tasks, projects, and cross-functional teams. Built with a focus on strict security, resilient database access, and clean architectural boundaries.
 
-## Overview
+---
 
-Build a **Task Management API** for managing **todos, projects, and teams**. It is simple enough to finish, but rich enough to teach the core flow of a modern backend application.
+## 🚀 Key Features
 
-Think of it as a mini version of:
+### 🛡️ Enterprise-Grade Security
+* **Robust Authentication Flow**: Implements dual-token architecture using short-lived JWT access tokens and stateful, opaque refresh tokens stored via Argon2/bcrypt hashing.
+* **Dual-Layer Authorization**:
+  * **Global RBAC**: Database-driven Role-Based Access Control allowing global permissions (e.g., system-wide Admin overrides).
+  * **Project-Level Permissions**: Scoped workspace access ensuring users can only interact with projects and tasks they have explicit membership in.
+* **Input Defense**: Strict validation using Pydantic schemas enforcing password complexity, boundaries, and type safety, preventing mass-assignment and injection attacks.
 
-- Trello
-- Notion
+### ⚡ Resilient Architecture
+* **Advanced Database Pooling**: Optimized SQLAlchemy `create_engine` configuration with custom connection pool sizing, overflow management, and pre-ping connectivity checks to prevent stale connections and connection exhaustion under load.
+* **Zero N+1 Query Problem**: Utilizes optimized `selectinload` eager loading for user roles and permissions, eliminating database bottlenecks during authentication.
+* **Centralized Exception Handling**: All business logic raises standardized custom exceptions (e.g., `PermissionDeniedException`, `TaskNotFoundException`) which are caught by a global FastAPI exception handler, ensuring clients never see raw 500 stack traces and always receive strictly compliant RFC 7235 REST responses.
 
-## What Users Can Do
+### 📈 Scalable API Design
+* **URI Versioning**: All endpoints are cleanly separated under an `/api/v1` namespace to ensure seamless forward-compatibility.
+* **Pagination**: Enforced generic, memory-safe pagination (`PaginatedResponse`) with configurable offset/limit querying to protect list endpoints (`/projects`, `/users`, `/tasks`) against unbounded data retrieval.
+* **Modern SQLAlchemy 2.0**: Exclusively uses the modern SQLAlchemy `select()` API for cleaner, more predictable ORM querying.
 
-Users can:
+---
 
-- Register and log in
-- Create projects
-- Create tasks
-- Assign tasks
-- Mark tasks as completed
-- Add comments
-- Upload attachments
+## 🛠️ Technology Stack
 
-## Why This Project Is Great for Beginners
+* **Framework:** [FastAPI](https://fastapi.tiangolo.com/) (Python 3.10+)
+* **Database:** PostgreSQL
+* **ORM:** [SQLAlchemy 2.0](https://www.sqlalchemy.org/)
+* **Migrations:** Alembic
+* **Data Validation:** Pydantic V2 & `pydantic-settings`
+* **Security:** PyJWT, `pwdlib` (Argon2 recommended)
 
-This project teaches:
+---
 
-- Authentication
-- Database relationships
-- API structure
-- CRUD operations
-- Async basics
-- File uploads
-- Permissions
+## 📁 Project Structure
 
-It gives you real backend experience without the complexity of AI, video, or other advanced domains.
-
-## Concepts You’ll Learn
-
-### 1. FastAPI Structure
-
-You’ll understand the core backend flow:
-
-```text
-router
-↓
-service
-↓
-database
-↓
-response
-```
-
-This is the foundation of a clean FastAPI application.
-
-### 2. CRUD Operations
-
-You’ll implement:
-
-- Create task
-- Update task
-- Delete task
-- List tasks
-
-This helps you become comfortable working with databases through an API.
-
-### 3. JWT Authentication
-
-Features:
-
-- Signup
-- Login
-- Protected routes
-
-Concepts:
-
-- Password hashing
-- Token flow
-- Authentication dependencies
-
-### 4. Database Relationships
-
-Example relationship:
-
-```text
-User → Projects → Tasks → Comments
-```
-
-You’ll understand:
-
-- Foreign keys
-- One-to-many relations
-- Query joins
-
-### 5. File Uploads
-
-Allow users to upload:
-
-- Task attachments
-- Profile pictures
-
-Concepts:
-
-- Multipart forms
-- File storage
-- Async uploads
-
-### 6. Async Basics
-
-You’ll use `async def` for:
-
-- Database access
-- File handling
-
-This helps async behavior feel natural instead of abstract.
-
-### 7. Validation
-
-Use Pydantic for:
-
-- Request validation
-- Response schemas
-
-This is one of the most important FastAPI concepts.
-
-### 8. Error Handling
-
-Learn how to handle:
-
-- Proper status codes
-- Exception handlers
-- Validation errors
-
-### 9. Pagination and Filtering
-
-Add features like:
-
-- Filter completed tasks
-- Search tasks
-- Pagination
-
-This is a practical API design skill.
-
-### 10. Docker Basics
-
-Containerize:
-
-- FastAPI app
-- PostgreSQL
-
-This gives you beginner-friendly DevOps exposure.
-
-## Suggested Stack
-
-### Backend
-
-- FastAPI
-- PostgreSQL
-- SQLAlchemy
-- Alembic
-
-### Authentication
-
-- JWT
-
-### Optional Later
-
-- Redis
-
-## Suggested Folder Structure
+The codebase strictly adheres to Separation of Concerns (SoC), isolating HTTP transport logic from core business logic.
 
 ```text
 app/
-├── routers/
-├── models/
-├── schemas/
-├── services/
-├── database/
-├── auth/
-├── utils/
-└── main.py
+├── auth/           # JWT generation, token rotation, and hashing utilities
+├── authorization/  # RBAC models and permission dependency injection
+├── core/           # Environment config, constants, and custom exception hierarchy
+├── db/             # Database connection pooling and base models
+├── models/         # SQLAlchemy ORM models (Database Layer)
+├── routers/        # FastAPI API endpoints (Transport Layer)
+├── schemas/        # Pydantic models for serialization/validation
+├── scripts/        # CLI scripts (e.g., create_admin.py)
+├── services/       # Core business logic and database interactions
+└── main.py         # App initialization, exception handlers, and lifespan
 ```
 
-This is a standard and scalable architecture for a FastAPI project.
+---
 
-## Features to Build in Order
+## 🚦 Local Setup & Installation
 
-### Phase 1
+### 1. Prerequisites
+* Python 3.10+
+* PostgreSQL running locally or via Docker
 
-- Basic CRUD
+### 2. Environment Configuration
+Clone the repository and create your local environment file:
 
-### Phase 2
+```bash
+cp .env.example .env
+```
 
-- PostgreSQL integration
+Open `.env` and configure your settings:
+* Update `DATABASE_URL` with your PostgreSQL credentials.
+* Generate a strong 256-bit hex secret for `SECRET_KEY`:
+  ```bash
+  python -c "import secrets; print(secrets.token_hex(32))"
+  ```
 
-### Phase 3
+### 3. Install Dependencies
+It is recommended to use a virtual environment:
 
-- Authentication
+```bash
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
 
-### Phase 4
+### 4. Database Migrations
+Generate and apply the initial schema using Alembic:
 
-- Project and task relationships
+```bash
+alembic upgrade head
+```
 
-### Phase 5
+### 5. Seed an Admin User
+Before interacting with the API, create a root admin user to bootstrap the system:
 
-- Comments
+```bash
+python -m app.scripts.create_admin
+```
 
-### Phase 6
+### 6. Start the Server
+Run the FastAPI application via Uvicorn:
 
-- File upload
+```bash
+python -m app.main
+# The API will be available at http://127.0.0.1:8000
+# Interactive Swagger Documentation: http://127.0.0.1:8000/docs
+```
 
-### Phase 7
+---
 
-- Pagination and filtering
+## 📝 Code Quality & Tooling
 
-### Phase 8
-
-- Docker
-
-## What You’ll Understand After Completing It
-
-After finishing this project, you’ll understand:
-
-- How backend APIs are structured
-- The request lifecycle
-- Authentication flow
-- Database relationships
-- Async basics
-- Scalable folder organization
-
-You’ll also be ready to move on to:
-
-- Chat systems
-- AI pipelines
-- E-commerce
-- Microservices
-
-This is one of the best bridge projects for moving from beginner to intermediate FastAPI development.
+This project utilizes modern Python tooling for code quality and correctness:
+* **Ruff**: For lightning-fast linting and formatting.
+* **Mypy**: For strict static type checking (with `pydantic.mypy` plugins enabled).
+* **Pytest**: For testing configurations defined in `pyproject.toml`.
