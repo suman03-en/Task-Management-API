@@ -1,49 +1,46 @@
 from typing import Annotated
 import uuid
-from datetime import timedelta
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Query
 from fastapi.exceptions import HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from app.dependencies import get_db
-from app.schemas.user import UserCreate, UserRead, Token
+from app.dependencies import get_db, get_current_user
+from app.schemas.user import UserCreate, UserRead, Token, RefreshTokenRequest
 from app.models.user import User as UserModel
-from app.services.user import create_user_in_db, get_user_from_db, list_users_from_db, authenticate_user, get_current_user
+from app.services.user import (
+    create_user_in_db, 
+    get_user_from_db, 
+    list_users_from_db, 
+    authenticate_user,
+    create_refresh_token_for_user,
+    verify_refresh_token,
+)
 from app.auth.jwt_handler import create_access_token
 from app.authorization.permissions import require_permission
+from app.schemas.pagination import PaginatedResponse
 
 
+# Main router for all user-related endpoints
 user_router = APIRouter(prefix="/users", tags=["users"])
 
-#subrouter
-public_router = APIRouter(prefix="/auth")
-protected_router = APIRouter(dependencies=[Depends(get_current_user)])
-
-# Annotated types for dependencies
 DbSession = Annotated[Session, Depends(get_db)]
 CurrentUser = Annotated[UserModel, Depends(get_current_user)]
 
-@public_router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+
+# --- Public / Auth Endpoints ---
+
+@user_router.post("/auth/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 def register_user(user_in: UserCreate, db: DbSession):
     return create_user_in_db(db, user_in)
 
 
-@protected_router.get("/list", response_model=list[UserRead])
-def list_users(db: DbSession, _: UserModel = Depends(require_permission("read", "user"))):
-    return list_users_from_db(db)
-
-@protected_router.get("/{user_id}", response_model=UserRead)
-def get_user(user_id: uuid.UUID, db: DbSession, _: UserModel = Depends(require_permission("read", "user"))):
-    return get_user_from_db(db, user_id)
-
-
-@public_router.post("/token")
+@user_router.post("/auth/token", response_model=Token)
 async def login_for_access_token(
         form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
         db: DbSession
-) -> Token:
+):
     user = authenticate_user(db, form_data.username, form_data.password)
     if user is None:
         raise HTTPException(
@@ -51,16 +48,63 @@ async def login_for_access_token(
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token = create_access_token(data={"sub": user.username}, expires_delta=timedelta(minutes=30))
-    return Token(access_token=access_token, token_type="bearer")
+    
+    access_token = create_access_token(data={"sub": user.username})
+    refresh_token = create_refresh_token_for_user(db, user)
+    
+    return Token(
+        access_token=access_token, 
+        refresh_token=refresh_token,
+        token_type="bearer"
+    )
 
-@protected_router.get("/me", response_model=UserRead)
+
+@user_router.post("/auth/refresh", response_model=Token)
+async def refresh_access_token(
+    request: RefreshTokenRequest,
+    db: DbSession
+):
+    user = verify_refresh_token(db, request.refresh_token)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+        
+    access_token = create_access_token(data={"sub": user.username})
+    new_refresh_token = create_refresh_token_for_user(db, user) # rotate token
+    
+    return Token(
+        access_token=access_token, 
+        refresh_token=new_refresh_token,
+        token_type="bearer"
+    )
+
+
+# --- Protected Endpoints ---
+
+@user_router.get("", response_model=PaginatedResponse[UserRead])
+def list_users(
+    db: DbSession,
+    _: UserModel = Depends(require_permission("read", "user")),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+):
+    users = list_users_from_db(db)
+    offset = (page - 1) * page_size
+    paginated_users = users[offset : offset + page_size]
+    return PaginatedResponse(items=paginated_users, total=len(users), page=page, page_size=page_size)
+
+
+@user_router.get("/me", response_model=UserRead)
 async def read_users_me(
         current_user: CurrentUser
 ):
+    # current_user relies on Depends(get_current_user), so it's fully protected
     return current_user
 
 
-# Include subrouters in the main router
-user_router.include_router(public_router)
-user_router.include_router(protected_router)
+@user_router.get("/{user_id}", response_model=UserRead)
+def get_user(user_id: uuid.UUID, db: DbSession, _: UserModel = Depends(require_permission("read", "user"))):
+    return get_user_from_db(db, user_id)

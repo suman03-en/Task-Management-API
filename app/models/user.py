@@ -25,10 +25,13 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(
         nullable=False
     )
+    hashed_refresh_token: Mapped[str | None] = mapped_column(
+        String(255), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, nullable=False
     )
-    role_id: Mapped[uuid.UUID] = mapped_column(
+    role_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("roles.id", ondelete="SET NULL"), nullable=True
     )
 

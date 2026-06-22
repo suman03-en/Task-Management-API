@@ -1,35 +1,26 @@
-import os
-from datetime import datetime, timedelta, timezone
-from dataclasses import dataclass
+from datetime import datetime, timezone
 from functools import lru_cache
-from dotenv import load_dotenv
 
-load_dotenv()
-
-timezone_nepal = timezone(timedelta(hours=5, minutes=45), name="Asia/Kathmandu")
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-# returns timezone aware time
 def utc_now() -> datetime:
-    return datetime.now(timezone_nepal)
+    """Returns the current time in UTC (timezone-aware)."""
+    return datetime.now(timezone.utc)
 
 
-@dataclass(frozen=True)
-class Settings:
-    app_name: str
-    debug: bool
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+
+    app_name: str = "Task Management API"
+    debug: bool = False
     database_url: str
+    secret_key: str
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
+    refresh_token_expire_days: int = 7
 
 
 @lru_cache
 def get_settings() -> Settings:
-    debug_value = os.getenv("DEBUG", "false").strip().lower()
-    return Settings(
-        app_name=os.getenv("APP_NAME", "Task Management API"),
-        debug=debug_value in {"1", "true", "yes", "on"},
-        database_url=os.getenv("DATABASE_URL", "sqlite:///./task_management.db"),
-    )
-
-if __name__ == "__main__":
-    settings = get_settings()
-    print(settings)
+    return Settings()

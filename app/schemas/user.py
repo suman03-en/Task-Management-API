@@ -1,35 +1,40 @@
 from uuid import UUID
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
-class UserBase(BaseModel):
+class UserCreate(BaseModel):
+    """Schema for user registration. role_id is intentionally excluded — roles are server-assigned."""
     username: str = Field(min_length=3, max_length=50)
-    role_id: UUID | None = None
+    password: str = Field(min_length=8, max_length=128)
 
-class UserCreate(UserBase):
-    password: str
+    @field_validator("password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        if not any(c.isupper() for c in v):
+            raise ValueError("Password must contain at least one uppercase letter.")
+        if not any(c.isdigit() for c in v):
+            raise ValueError("Password must contain at least one digit.")
+        return v
 
-class UserRead(UserBase):
+
+class UserRead(BaseModel):
     id: UUID
+    username: str
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
-class UserInDB(UserBase):
-    hashed_password: str
-
-class ProjectMember(BaseModel):
-    members: list[UserRead]
-
 
 class Token(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
 
 class TokenData(BaseModel):
     username: str
-
-
-

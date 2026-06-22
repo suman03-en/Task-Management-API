@@ -1,44 +1,53 @@
 """
-service layer returns python exceptions so that any interface (e.g. REST API, CLI, etc.) can handle them appropriately and return the correct response to the user.
+Custom exception hierarchy for the Task Management API.
 
-bad case:
-- service layer raises HTTPException with status code and message
-- REST API catches HTTPException and returns the status code and message to the user
-- but when cli calls service layer, it also catches HTTPException and returns the status code and message to the user, which is not appropriate for CLI
-
-good case:
-- service layer raises custom exceptions (e.g. UserAlreadyExistsException, UserNotFoundException, etc.)
-- REST API catches custom exceptions and raises HTTPException with appropriate status code and message
-- CLI catches custom exceptions and prints appropriate message to the user
+Design rationale:
+- Service layer raises Python exceptions (not HTTPExceptions) so it remains
+  interface-agnostic — the same service can be called from a REST API, CLI,
+  Celery task, or test without importing FastAPI.
+- The API layer (main.py) maps each exception type to the correct HTTP status.
 """
 
 
 class AppBaseException(Exception):
-    """Base exception for the application."""
+    """Base exception for all application-level errors."""
     pass
 
+
+# ── User exceptions ────────────────────────────────────────────────────────
 class UserAlreadyExistsException(AppBaseException):
-    """Exception raised when trying to create a user that already exists."""
+    """Raised when attempting to register a username that is already taken."""
     pass
+
 
 class UserNotFoundException(AppBaseException):
-    """Exception raised when a user is not found."""
+    """Raised when a requested user does not exist in the database."""
     pass
 
+
+# ── Task exceptions ────────────────────────────────────────────────────────
 class TaskNotFoundException(AppBaseException):
-    """Exception raised when a task is not found."""
+    """Raised when a requested task does not exist in the database."""
     pass
 
+
+# ── Project exceptions ─────────────────────────────────────────────────────
 class ProjectNotFoundException(AppBaseException):
-    """Exception raised when a project is not found."""
+    """Raised when a requested project does not exist in the database."""
     pass
+
 
 class MemberAdditionError(AppBaseException):
-    """Exception raised when adding a member to a project fails."""
+    """Raised when adding a member to a project fails (e.g. already a member)."""
     pass
+
 
 class MemberRemovalError(AppBaseException):
-    """Exception raised when removing a member from a project fails."""
+    """Raised when removing a member from a project fails (e.g. not a member)."""
     pass
 
 
+# ── Authorization exceptions ───────────────────────────────────────────────
+class PermissionDeniedException(AppBaseException):
+    """Raised when a user attempts an action they are not authorized to perform."""
+    pass

@@ -34,6 +34,7 @@ class ProjectMemberAdd(BaseModel):
 class ProjectMemberRead(BaseModel):
     user_id: UUID
     project_id: UUID
+    role: str
     joined_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
