@@ -16,14 +16,11 @@ from app.core.exceptions import (
 )
 
 
-def create_project_in_db(db: Session, project_in: ProjectCreate) -> ProjectModel:
-    if db.get(UserModel, project_in.owner_id) is None:
-        raise UserNotFoundException(f"Owner with ID '{project_in.owner_id}' not found.")
-
-    project_db = ProjectModel(**project_in.model_dump())
+def create_project_in_db(db: Session, project_in: ProjectCreate, current_user: UserModel) -> ProjectModel:
+    project_db = ProjectModel(**project_in.model_dump(), owner_id=current_user.id)
     db.add(project_db)
     db.flush()
-    membership = ProjectMemberModel(project_id=project_db.id, user_id=project_in.owner_id, role="creator")
+    membership = ProjectMemberModel(project_id=project_db.id, user_id=current_user.id, role="creator")
     db.add(membership)
     db.commit()
     db.refresh(project_db)

@@ -17,15 +17,17 @@ from app.core.exceptions import (
     MemberRemovalError,
     PermissionDeniedException,
 )
+from app.bootstrap.roles import load_roles
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(api: FastAPI):
     # startup
     logger.info("Application startup: validating database connection...")
+    load_roles()
     yield
     # shutdown
     logger.info("Application shutdown.")

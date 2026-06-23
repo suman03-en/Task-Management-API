@@ -91,10 +91,9 @@ def list_users(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
 ):
-    users = list_users_from_db(db)
     offset = (page - 1) * page_size
-    paginated_users = users[offset : offset + page_size]
-    return PaginatedResponse(items=paginated_users, total=len(users), page=page, page_size=page_size)
+    users, total = list_users_from_db(db, offset=offset, limit=page_size)
+    return PaginatedResponse(items=users, total=total, page=page, page_size=page_size)
 
 
 @user_router.get("/me", response_model=UserRead)

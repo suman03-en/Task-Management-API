@@ -11,7 +11,7 @@ class ProjectBase(BaseModel):
 
 
 class ProjectCreate(ProjectBase):
-    owner_id: Optional[UUID] = None
+    pass
 
 
 class ProjectUpdate(BaseModel):
@@ -38,6 +38,3 @@ class ProjectMemberRead(BaseModel):
     joined_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-
-class ProjectMemberListResponse(BaseModel):
-    members: list[ProjectMemberRead]

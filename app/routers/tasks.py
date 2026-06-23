@@ -10,11 +10,11 @@ from app.services.task import (
     get_task_from_db,
     update_task_in_db,
     delete_task_from_db,
-    assign_task_to_user_in_db
+    assign_task_to_user_in_db,
+    complete_task_in_db,
 )
 from app.models.user import User as UserModel
 from app.models.project import ProjectMember
-from app.core.constants import TaskStatus
 from app.authorization.permissions import require_task_permission
 
 
@@ -48,8 +48,7 @@ def delete_task(task_id: uuid.UUID, db: DbSession, _: ProjectMember = Depends(re
 
 @task_router.post("/{task_id}/complete", response_model=TaskRead)
 def mark_task_complete(task_id: uuid.UUID, db: DbSession, _: ProjectMember = Depends(require_task_permission("update", "task"))):
-    task_update = TaskUpdate(status=TaskStatus.COMPLETED)
-    return update_task_in_db(db, task_id, task_update)
+    return complete_task_in_db(db, task_id)
 
 
 @task_router.post("/{task_id}/assign", response_model=TaskRead)

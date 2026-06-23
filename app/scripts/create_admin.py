@@ -5,7 +5,7 @@ from app.services.user import create_user_in_db
 from app.db.database import SessionLocal
 from app.schemas.user import UserCreate
 from app.models.authorization import Role
-
+from app.bootstrap.roles import ROLE_CACHE
 
 def input_admin_credentials() -> tuple[str, str]:
     print("Enter admin credentials:")
@@ -17,16 +17,10 @@ def input_admin_credentials() -> tuple[str, str]:
 def create_admin_user(username: str, password: str) -> None:
     db = SessionLocal()
     try:
-        admin_role = db.scalar(select(Role).where(Role.name == "admin"))
-        if not admin_role:
-            admin_role = Role(name="admin")
-            db.add(admin_role)
-            db.commit()
-            db.refresh(admin_role)
-
+        admin_role_id = ROLE_CACHE["admin"]
         admin_user_data = UserCreate(username=username, password=password)
         print("Creating admin user...")
-        create_user_in_db(db, admin_user_data, role_id=admin_role.id)  # type: ignore[arg-type]
+        create_user_in_db(db, admin_user_data, role_id=admin_role_id)  # type: ignore[arg-type]
         print("Admin user created successfully.")
     except Exception as e:
         print(f"Error creating admin user: {e}")

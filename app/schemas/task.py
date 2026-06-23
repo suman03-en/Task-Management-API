@@ -14,7 +14,7 @@ class TaskBase(BaseModel):
 class TaskCreate(TaskBase):
     pass
 
-class TaskInDB(TaskBase):
+class TaskCreateData(TaskBase):
     project_id: uuid.UUID
     
 class TaskRead(TaskBase):
@@ -34,8 +34,5 @@ class TaskUpdate(BaseModel):
     assigned_to: uuid.UUID | None = None
 
 
-class TaskListResponse(BaseModel):
-    tasks: list[TaskRead]
-    count: int = 0
 
 
