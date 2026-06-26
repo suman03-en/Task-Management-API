@@ -9,14 +9,7 @@ from sqlalchemy.orm import Session
 from app.dependencies import get_db, get_current_user
 from app.schemas.user import UserCreate, UserRead, Token, RefreshTokenRequest
 from app.models.user import User as UserModel
-from app.services.user import (
-    create_user_in_db, 
-    get_user_from_db, 
-    list_users_from_db, 
-    authenticate_user,
-    create_refresh_token_for_user,
-    verify_refresh_token,
-)
+from app.services.user import UserService
 from app.auth.jwt_handler import create_access_token
 from app.authorization.permissions import require_permission
 from app.schemas.pagination import PaginatedResponse
@@ -25,23 +18,28 @@ from app.schemas.pagination import PaginatedResponse
 # Main router for all user-related endpoints
 user_router = APIRouter(prefix="/users", tags=["users"])
 
-DbSession = Annotated[Session, Depends(get_db)]
+
+# make sep folder for these dependencies: app/depdencies/user.py
+def get_user_service(db: Session = Depends(get_db)) -> UserService:
+    return UserService(db)
+
+UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 CurrentUser = Annotated[UserModel, Depends(get_current_user)]
 
 
 # --- Public / Auth Endpoints ---
 
 @user_router.post("/auth/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
-def register_user(user_in: UserCreate, db: DbSession):
-    return create_user_in_db(db, user_in)
+def register_user(user_in: UserCreate, user_service: UserServiceDep):
+    return user_service.create_user(user_in)
 
 
 @user_router.post("/auth/token", response_model=Token)
 async def login_for_access_token(
         form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-        db: DbSession
+        user_service: UserServiceDep
 ):
-    user = authenticate_user(db, form_data.username, form_data.password)
+    user = user_service.authenticate_user(form_data.username, form_data.password)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -50,8 +48,8 @@ async def login_for_access_token(
         )
     
     access_token = create_access_token(data={"sub": user.username})
-    refresh_token = create_refresh_token_for_user(db, user)
-    
+    refresh_token = user_service.create_refresh_token(user)
+
     return Token(
         access_token=access_token, 
         refresh_token=refresh_token,
@@ -62,9 +60,9 @@ async def login_for_access_token(
 @user_router.post("/auth/refresh", response_model=Token)
 async def refresh_access_token(
     request: RefreshTokenRequest,
-    db: DbSession
+    user_service: UserServiceDep
 ):
-    user = verify_refresh_token(db, request.refresh_token)
+    user = user_service.verify_refresh_token(request.refresh_token)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -73,7 +71,7 @@ async def refresh_access_token(
         )
         
     access_token = create_access_token(data={"sub": user.username})
-    new_refresh_token = create_refresh_token_for_user(db, user) # rotate token
+    new_refresh_token = user_service.create_refresh_token(user) # rotate token
     
     return Token(
         access_token=access_token, 
@@ -86,13 +84,13 @@ async def refresh_access_token(
 
 @user_router.get("", response_model=PaginatedResponse[UserRead])
 def list_users(
-    db: DbSession,
+    user_service: UserServiceDep,
     _: UserModel = Depends(require_permission("read", "user")),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
 ):
     offset = (page - 1) * page_size
-    users, total = list_users_from_db(db, offset=offset, limit=page_size)
+    users, total = user_service.list_users(offset=offset, limit=page_size)
     return PaginatedResponse(items=users, total=total, page=page, page_size=page_size)
 
 
@@ -105,5 +103,5 @@ async def read_users_me(
 
 
 @user_router.get("/{user_id}", response_model=UserRead)
-def get_user(user_id: uuid.UUID, db: DbSession, _: UserModel = Depends(require_permission("read", "user"))):
-    return get_user_from_db(db, user_id)
+def get_user(user_id: uuid.UUID, user_service: UserServiceDep, _: UserModel = Depends(require_permission("read", "user"))):
+    return user_service.get_user(user_id)

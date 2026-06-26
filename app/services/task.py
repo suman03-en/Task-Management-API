@@ -13,7 +13,6 @@ from app.core.exceptions import (
     PermissionDeniedException,
 )
 from app.services.project import check_project_membership
-from app.services.user import get_user_from_db
 
 logger = logging.getLogger(__name__)
 
@@ -86,8 +85,6 @@ def assign_task_to_user_in_db(
     db: Session, task_id: uuid.UUID, user_id: uuid.UUID
 ) -> Task:
     task_db = get_task_from_db(db, task_id)
-
-    user_db = get_user_from_db(db, user_id)
 
     project_id = cast(uuid.UUID, task_db.project_id)
     if not check_project_membership(db, project_id, user_id):
