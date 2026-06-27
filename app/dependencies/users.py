@@ -1,30 +1,16 @@
-import logging
-import uuid
-from typing import Annotated, Generator
-
+from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.db.database import SessionLocal
 from app.auth.jwt_handler import decode_jwt_token
 from app.models.user import User as UserModel
-from app.models.authorization import Role, Permission
+from app.models.authorization import Role
+from app.dependencies.db import get_db
 
-
-logger = logging.getLogger(__name__)
 
 oauth_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/users/auth/token")
-
-
-def get_db() -> Generator[Session, None, None]:
-    """FastAPI dependency that provides a database session per request."""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 def get_current_user(

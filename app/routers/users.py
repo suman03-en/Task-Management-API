@@ -4,24 +4,20 @@ import uuid
 from fastapi import APIRouter, Depends, status, Query
 from fastapi.exceptions import HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
 
-from app.dependencies import get_db, get_current_user
 from app.schemas.user import UserCreate, UserRead, Token, RefreshTokenRequest
 from app.models.user import User as UserModel
 from app.services.user import UserService
 from app.auth.jwt_handler import create_access_token
 from app.authorization.permissions import require_permission
 from app.schemas.pagination import PaginatedResponse
-
+from app.dependencies.users import get_current_user
+from app.dependencies.db import get_db
+from app.dependencies.services import get_user_service
 
 # Main router for all user-related endpoints
 user_router = APIRouter(prefix="/users", tags=["users"])
 
-
-# make sep folder for these dependencies: app/depdencies/user.py
-def get_user_service(db: Session = Depends(get_db)) -> UserService:
-    return UserService(db)
 
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 CurrentUser = Annotated[UserModel, Depends(get_current_user)]
