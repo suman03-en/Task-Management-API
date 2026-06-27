@@ -1,17 +1,22 @@
-# Enterprise Task Management API
+# 🚀 Enterprise Task Management API
+
+![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-00a393?logo=fastapi&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15.0%2B-316192?logo=postgresql&logoColor=white)
+![SQLAlchemy 2.0](https://img.shields.io/badge/SQLAlchemy-2.0-red)
 
 A production-ready, high-performance RESTful API for managing tasks, projects, and cross-functional teams. Built with a focus on strict security, resilient database access, and clean architectural boundaries.
 
 ---
 
-## 🚀 Key Features
+## 🌟 Key Features
 
 ### 🛡️ Enterprise-Grade Security
 * **Robust Authentication Flow**: Implements dual-token architecture using short-lived JWT access tokens and stateful, opaque refresh tokens stored via Argon2/bcrypt hashing.
 * **Dual-Layer Authorization**:
   * **Global RBAC**: Database-driven Role-Based Access Control allowing global permissions (e.g., system-wide Admin overrides).
   * **Project-Level Permissions**: Scoped workspace access ensuring users can only interact with projects and tasks they have explicit membership in.
-* **Input Defense**: Strict validation using Pydantic schemas enforcing password complexity, boundaries, and type safety, preventing mass-assignment and injection attacks.
+* **Input Defense**: Strict validation using Pydantic V2 schemas enforcing password complexity, boundaries, and type safety, preventing mass-assignment and injection attacks.
 
 ### ⚡ Resilient Architecture
 * **Advanced Database Pooling**: Optimized SQLAlchemy `create_engine` configuration with custom connection pool sizing, overflow management, and pre-ping connectivity checks to prevent stale connections and connection exhaustion under load.
@@ -25,6 +30,27 @@ A production-ready, high-performance RESTful API for managing tasks, projects, a
 
 ---
 
+## 🏗️ Architecture
+
+```mermaid
+graph TD
+    Client["Client (Web/Mobile)"] --> |HTTP Requests| FastAPI["FastAPI (Transport Layer)"]
+    FastAPI --> |Validation & Routing| Routers["API Routers"]
+    Routers --> |DTOs| Services["Business Logic Services"]
+    Services --> |SQLAlchemy 2.0 ORM| DB[("PostgreSQL")]
+    
+    FastAPI --> Auth["Authentication & RBAC"]
+    Auth --> DB
+    
+    subgraph Core App
+        Routers
+        Services
+        Auth
+    end
+```
+
+---
+
 ## 🛠️ Technology Stack
 
 * **Framework:** [FastAPI](https://fastapi.tiangolo.com/) (Python 3.10+)
@@ -33,6 +59,7 @@ A production-ready, high-performance RESTful API for managing tasks, projects, a
 * **Migrations:** Alembic
 * **Data Validation:** Pydantic V2 & `pydantic-settings`
 * **Security:** PyJWT, `pwdlib` (Argon2 recommended)
+* **Code Quality:** Ruff, Mypy, Pytest
 
 ---
 
@@ -104,15 +131,69 @@ Run the FastAPI application via Uvicorn:
 
 ```bash
 python -m app.main
-# The API will be available at http://127.0.0.1:8000
-# Interactive Swagger Documentation: http://127.0.0.1:8000/docs
 ```
+* **API Endpoints:** `http://127.0.0.1:8000`
+* **Interactive Swagger UI:** `http://127.0.0.1:8000/docs`
+* **ReDoc UI:** `http://127.0.0.1:8000/redoc`
+
+---
+
+## 🔗 Core API Modules
+
+The API is versioned under `/api/v1` and provides robust capabilities across several modules:
+
+* **Users (`/api/v1/users`)**: Authentication, user profile management, and global RBAC assignment.
+* **Projects (`/api/v1/projects`)**: Workspace creation, project updates, and project-level user access control.
+* **Tasks (`/api/v1/tasks`)**: Task tracking, assignment, status updates, and filtering.
+
+> **Note:** Accessing endpoints requires proper authentication (Bearer token). Certain administrative endpoints are protected by `Global Admin` roles.
 
 ---
 
 ## 📝 Code Quality & Tooling
 
 This project utilizes modern Python tooling for code quality and correctness:
-* **Ruff**: For lightning-fast linting and formatting.
-* **Mypy**: For strict static type checking (with `pydantic.mypy` plugins enabled).
-* **Pytest**: For testing configurations defined in `pyproject.toml`.
+
+* **Ruff**: For lightning-fast linting and formatting. Run with:
+  ```bash
+  ruff check .
+  ruff format .
+  ```
+* **Mypy**: For strict static type checking (with `pydantic.mypy` plugins enabled). Run with:
+  ```bash
+  mypy .
+  ```
+* **Pytest**: For testing configurations defined in `pyproject.toml`. Run the suite with:
+  ```bash
+  pytest
+  ```
+* **Coverage**: For checking test coverage:
+  ```bash
+  coverage run -m pytest
+  coverage report
+  ```
+
+---
+
+## 🚀 Deployment Recommendations
+
+For production environments, ensure you follow these best practices:
+1. **WSGI/ASGI Server**: Use `gunicorn` with `uvicorn` workers behind a reverse proxy like Nginx or Traefik.
+2. **Environment Variables**: Never hardcode secrets. Inject `.env` values dynamically.
+3. **Database Pooling**: Ensure connection pools are properly tuned (like `PgBouncer`) alongside SQLAlchemy's internal pooling.
+4. **SSL/TLS**: Enforce HTTPS via reverse proxy and secure your cookies/tokens.
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Ensure all tests and linters pass (`ruff check`, `mypy`, `pytest`)
+4. Commit your changes (`git commit -m 'Add some amazing feature'`)
+5. Push to the branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
+
+---
+
+*Engineered for scale, security, and developer experience.*
