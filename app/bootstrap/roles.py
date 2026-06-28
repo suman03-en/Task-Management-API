@@ -4,6 +4,10 @@ from app.models.authorization import Role
 ROLE_CACHE = {}
 
 def load_roles():
+    """
+    Load roles from the database into the ROLE_CACHE dictionary.
+    This caches the roles for quick access and ensures that required roles are present in the database.
+    """
     db = SessionLocal()
     try:
         roles = db.query(Role).all()
