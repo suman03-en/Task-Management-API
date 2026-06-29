@@ -33,6 +33,15 @@ class TaskUpdate(BaseModel):
     status: TaskStatus | None = None
     assigned_to: uuid.UUID | None = None
 
+class TaskRequestRecord(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
 
+    id: uuid.UUID
+    task_id: uuid.UUID
+    request_by: uuid.UUID
+    request_at: datetime
+
+class TaskRequestCreate(BaseModel):
+    task_id: uuid.UUID
 
 
