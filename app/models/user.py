@@ -39,3 +39,4 @@ class User(Base):
     projects: Mapped[list["Project"]] = relationship("Project", back_populates="owner")
     project_memberships = relationship("ProjectMember", back_populates="user")
     assigned_tasks = relationship("Task", back_populates="assigned_user")
+    requested_tasks = relationship("TaskRequestRecord", back_populates="requester")

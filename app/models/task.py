@@ -3,7 +3,7 @@ from typing import Optional
 from datetime import datetime
 
 from sqlalchemy.orm import Mapped, relationship, mapped_column
-from sqlalchemy import String, ForeignKey, Text, DateTime, UUID, Enum
+from sqlalchemy import String, ForeignKey, Text, DateTime, UUID, Enum, UniqueConstraint
 
 from app.core.constants import TaskStatus, TaskPriority
 from app.core.config import utc_now
@@ -47,3 +47,36 @@ class Task(Base):
     )
     project = relationship("Project", back_populates="tasks")
     assigned_user = relationship("User", back_populates="assigned_tasks")
+    request_records = relationship("TaskRequestRecord", back_populates="task", cascade="all, delete-orphan")
+
+
+class TaskRequestRecord(Base):
+    __tablename__ = "task_request_records"
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, nullable=False, default=uuid.uuid4
+    )
+    task_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("tasks.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    request_by: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    request_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, nullable=False
+    )
+
+    __table_args__ = (
+    UniqueConstraint(
+        "task_id", 
+        "request_by", 
+        name="uc_task_request"
+    ),
+    ) 
+    task = relationship("Task", back_populates="request_records")
+    requester = relationship("User", back_populates="requested_tasks")
