@@ -30,6 +30,18 @@ class TaskNotFoundException(AppBaseException):
     """Raised when a requested task does not exist in the database."""
     pass
 
+class TaskAlreadyAssignedException(AppBaseException):
+    """Raised when attempting to assign a task that is already assigned."""
+    pass
+
+class InvalidTaskStateException(AppBaseException):
+    """Raised when attempting to perform an action on a task that is not in a valid state."""
+    pass
+
+class DuplicateTaskRequestException(AppBaseException):
+    """Raised when a user attempts to request a task they have already requested."""
+    pass
+
 
 # ── Project exceptions ─────────────────────────────────────────────────────
 class ProjectNotFoundException(AppBaseException):

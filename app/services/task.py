@@ -1,20 +1,23 @@
 import uuid
 import logging
-from typing import cast
-from sqlalchemy import select, func
+from sqlalchemy import select, func, exists
 from sqlalchemy.orm import Session
 
-from app.models.task import Task
+from app.models.task import Task, TaskRequestRecord
 from app.models.project import Project
 from app.schemas.task import TaskCreateData, TaskUpdate
 from app.core.exceptions import (
     TaskNotFoundException,
     ProjectNotFoundException,
-    PermissionDeniedException,
+    TaskAlreadyAssignedException,
+    InvalidTaskStateException,
+    DuplicateTaskRequestException
 )
-from app.services.project import check_project_membership
+from app.core.constants import TaskStatus
+
 
 logger = logging.getLogger(__name__)
+
 
 class TaskService:
     def __init__(self, db: Session):
@@ -73,21 +76,74 @@ class TaskService:
 
     def complete_task(self, task_id: uuid.UUID) -> Task:
         task_db = self.get_task(task_id)
-        task_db.status = "completed"
+        if task_db.status == TaskStatus.IN_PROGRESS:
+            task_db.status = TaskStatus.COMPLETED
+        else:
+            raise InvalidTaskStateException(
+                f"Task is not in a state that allows completion."
+            )
+        self.db.commit()
+        self.db.refresh(task_db)
+        return task_db
+       
+
+    def assign_task_to_user(self, task_id: uuid.UUID, user_id: uuid.UUID) -> Task:
+        task_db = self.get_task(task_id)
+        if task_db.status != TaskStatus.PENDING:
+            raise InvalidTaskStateException(
+                f"Task is not in a state that allows assignment."
+            )
+        if task_db.assigned_to is not None:
+            raise TaskAlreadyAssignedException(
+                f"Task is already assigned to another user."
+            )
+        task_db.assigned_to = user_id
+        task_db.status = TaskStatus.IN_PROGRESS
         self.db.commit()
         self.db.refresh(task_db)
         return task_db
     
-    def assign_task_to_user(self, task_id: uuid.UUID, user_id: uuid.UUID) -> Task:
-        task_db = self.get_task(task_id)
 
-        project_id = cast(uuid.UUID, task_db.project_id)
-        if not check_project_membership(self.db, project_id, user_id):
-            raise PermissionDeniedException(
-                f"User  is not a member of project."
+class TaskRequestService:
+    def __init__(self, db: Session, task_service: TaskService):
+        self.db = db
+        self.task_service = task_service
+
+    def create_request(self, task_id: uuid.UUID, user_id: uuid.UUID) -> TaskRequestRecord:
+        """Create a task request record for a user requesting a task to get assigned to it."""
+        task_db = self.task_service.get_task(task_id)
+        if task_db.status != TaskStatus.PENDING:
+            raise InvalidTaskStateException(
+                f"Task is not in a state that allows requests."
+            )
+        existing_request = self.db.scalar(
+            select(
+                exists().where(
+                    TaskRequestRecord.task_id == task_id,
+                    TaskRequestRecord.request_by == user_id,
+                )
+            )
+        )
+        if existing_request:
+            raise DuplicateTaskRequestException(
+                f"User has already requested this task."
             )
 
-        task_db.assigned_to = user_id
+        request_record = TaskRequestRecord(task_id=task_id, request_by=user_id)
+        self.db.add(request_record)
         self.db.commit()
-        self.db.refresh(task_db)
-        return task_db
+        self.db.refresh(request_record)
+        return request_record
+    
+    def list_requests(self, task_id: uuid.UUID) -> list[TaskRequestRecord]:
+        """List all task request records for a specific task."""
+        task_db = self.task_service.get_task(task_id)
+        return list(task_db.request_records)
+
+    def list_user_requests(self, user_id: uuid.UUID) -> list[TaskRequestRecord]:
+        """List all task request records made by a specific user."""
+        return list(
+                self.db.scalars(
+                    select(TaskRequestRecord).where(TaskRequestRecord.request_by == user_id)
+                ).all()
+            )
