@@ -4,7 +4,8 @@ from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.dependencies import get_current_user, get_db
+from app.dependencies.users import get_current_user
+from app.dependencies.db import get_db
 from app.models.project import ProjectMember
 from app.models.task import Task
 from app.models.user import User as UserModel
