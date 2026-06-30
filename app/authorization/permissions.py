@@ -58,9 +58,10 @@ def _verify_project_access(
     db: Session, 
     project_id: uuid.UUID, 
     current_user: UserModel, 
+    actor: str,
     action: str, 
     resource: str
-) -> ProjectMember | None:
+) -> tuple[ProjectMember, UserModel] | None:
     """
     Core authorization logic for evaluating project-bound resources.
     Returns the ProjectMember if authorized, None if bypassed by an admin override,
@@ -69,7 +70,6 @@ def _verify_project_access(
     # Global admins bypass project-level checks
     # if current_user.role and current_user.role.name == "admin":
     #     return None
-
     membership = db.scalar(
         select(ProjectMember).where(
             ProjectMember.project_id == project_id,
@@ -80,16 +80,21 @@ def _verify_project_access(
     if not membership:
         raise PermissionDeniedException(f"You are not a member of project {project_id}.")
     
+    if membership.role != actor:
+        raise PermissionDeniedException(
+            f"Project role '{membership.role}' does not match required actor '{actor}'."
+        )
+    
     allowed_permissions = PROJECT_ROLE_PERMISSIONS.get(membership.role, set())
     if (action, resource) not in allowed_permissions:
         raise PermissionDeniedException(
             f"Project role '{membership.role}' does not grant {action} on {resource}."
         )
     
-    return membership
+    return (membership, current_user)
 
 
-def require_project_permission(action: str, resource: str):
+def require_project_permission(actor: str, action: str, resource: str):
     """
     Project-level permission check.
     """
@@ -98,11 +103,11 @@ def require_project_permission(action: str, resource: str):
             current_user=Depends(get_current_user),
             db=Depends(get_db)
     ):
-        return _verify_project_access(db, project_id, current_user, action, resource)
+        return _verify_project_access(db, project_id, current_user, actor, action, resource)
     return permission_dependency
 
 
-def require_task_permission(action: str, resource: str):
+def require_task_permission(actor: str, action: str, resource: str):
     """
     Task-level permission check. Resolves the task to its parent project
     and delegates to the core project access check.
@@ -118,6 +123,6 @@ def require_task_permission(action: str, resource: str):
             raise TaskNotFoundException(f"Task with ID '{task_id}' not found.")
         
         project_id = cast(uuid.UUID, task.project_id)
-        return _verify_project_access(db, project_id, current_user, action, resource)
+        return _verify_project_access(db, project_id, current_user, actor, action, resource)
         
     return permission_dependency
